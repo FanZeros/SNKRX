@@ -1,0 +1,357 @@
+-- main.lua (UrhoX port of SNKRX)
+-- Entry point: NanoVG context, game state machine, wave management
+-- Original game by a327ex (https://github.com/a327ex/SNKRX)
+
+require "LuaScripts/Utilities/Sample"
+
+-- ============================================================================
+-- Design Resolution (same as original SNKRX: 480x270)
+-- ============================================================================
+W = 480
+H = 270
+ARENA_X = 24
+ARENA_Y = 24
+ARENA_W = 432
+ARENA_H = 222
+
+-- ============================================================================
+-- Game State Globals
+-- ============================================================================
+game_state = "TITLE"    -- "TITLE", "GAME", "BUY", "GAME_OVER"
+snake_units = {}        -- array of unit key strings
+gold = 0
+round = 0
+hp = 100
+max_hp = 100
+score = 0
+enemies_spawned = 0
+enemies_to_spawn = 0
+
+-- Spawn management
+local spawn_timer = 0
+local spawn_interval = 1.8
+local wave_complete_delay = 0
+local title_blink = 0
+
+-- NanoVG
+local vg = nil
+
+-- ============================================================================
+-- Load Modules (after globals are defined)
+-- ============================================================================
+require("snkrx.engine")
+require("snkrx.units")
+require("snkrx.ui")
+require("snkrx.arena")
+require("snkrx.player")
+require("snkrx.enemies")
+require("snkrx.buy")
+
+-- ============================================================================
+-- Game Flow Functions
+-- ============================================================================
+function start_new_game()
+    snake_units = {"warrior", "mage", "ranger"}
+    gold = 10
+    round = 0
+    hp = 100
+    max_hp = 100
+    score = 0
+    enemies = {}
+    enemy_projectiles = {}
+    projectiles = {}
+    floating_texts = {}
+
+    game_state = "BUY"
+    start_next_round_setup()
+    init_shop()
+end
+
+function start_next_round_setup()
+    round = round + 1
+    enemies_spawned = 0
+    enemies_to_spawn = 3 + round * 2
+    if round % 5 == 0 then
+        enemies_to_spawn = enemies_to_spawn + 3
+    end
+    spawn_timer = 0
+    spawn_interval = math.max(0.5, 1.8 - round * 0.05)
+    wave_complete_delay = 0
+end
+
+function start_next_round()
+    start_next_round_setup()
+    enemies = {}
+    enemy_projectiles = {}
+    projectiles = {}
+    init_player()
+    init_arena()
+    game_state = "GAME"
+end
+
+-- ============================================================================
+-- UrhoX Entry Point
+-- ============================================================================
+function Start()
+    SampleStart()
+
+    -- Create NanoVG context
+    vg = nvgCreate(1)
+    if vg == nil then
+        print("ERROR: Failed to create NanoVG context")
+        return
+    end
+
+    -- Create font (only once!)
+    local fontId = nvgCreateFont(vg, "game", "Fonts/MiSans-Regular.ttf")
+    if fontId == -1 then
+        print("ERROR: Failed to load font")
+    end
+
+    print("=== SNKRX UrhoX Port Started ===")
+
+    -- Set mouse mode: free cursor for menu navigation
+    SampleInitMouseMode(MM_FREE)
+
+    -- Subscribe to events
+    SubscribeToEvent("Update", "HandleUpdate")
+    SubscribeToEvent(vg, "NanoVGRender", "HandleNanoVGRender")
+    SubscribeToEvent("KeyDown", "HandleKeyDown")
+end
+
+function Stop()
+    if vg ~= nil then
+        nvgDelete(vg)
+        vg = nil
+    end
+end
+
+-- ============================================================================
+-- Update
+-- ============================================================================
+---@param eventType string
+---@param eventData UpdateEventData
+function HandleUpdate(eventType, eventData)
+    local dt = eventData["TimeStep"]:GetFloat()
+
+    if game_state == "TITLE" then
+        title_blink = title_blink + dt
+
+    elseif game_state == "GAME" then
+        update_arena(dt)
+        update_player(dt)
+        update_enemies(dt)
+        update_floating_texts(dt)
+
+        -- Spawn enemies
+        if enemies_spawned < enemies_to_spawn then
+            spawn_timer = spawn_timer + dt
+            if spawn_timer >= spawn_interval then
+                spawn_timer = 0
+                spawn_enemy()
+                enemies_spawned = enemies_spawned + 1
+            end
+        end
+
+        -- Wave complete check
+        if enemies_spawned >= enemies_to_spawn and #enemies == 0 then
+            wave_complete_delay = wave_complete_delay + dt
+            if wave_complete_delay >= 1.0 then
+                -- Bonus gold
+                local round_bonus = 3 + round
+                gold = gold + round_bonus
+                spawn_floating_text(W / 2, H / 2, "+" .. round_bonus .. " Gold!", COLORS.gold, 14)
+
+                game_state = "BUY"
+                start_next_round_setup()
+                init_shop()
+            end
+        end
+
+        -- Death check
+        if hp <= 0 then
+            hp = 0
+            game_state = "GAME_OVER"
+            ScreenShake.trigger(8, 0.5)
+        end
+
+    elseif game_state == "BUY" then
+        update_shop(dt)
+
+    elseif game_state == "GAME_OVER" then
+        update_floating_texts(dt)
+        ScreenShake.update(dt)
+        particles:update(dt)
+    end
+end
+
+-- ============================================================================
+-- Key Input
+-- ============================================================================
+---@param eventType string
+---@param eventData KeyDownEventData
+function HandleKeyDown(eventType, eventData)
+    local key = eventData["Key"]:GetInt()
+
+    if game_state == "TITLE" then
+        if key == KEY_SPACE or key == KEY_RETURN then
+            start_new_game()
+        end
+
+    elseif game_state == "GAME_OVER" then
+        if key == KEY_SPACE or key == KEY_RETURN then
+            game_state = "TITLE"
+        end
+    end
+
+    if key == KEY_ESCAPE then
+        if game_state == "GAME" or game_state == "BUY" then
+            game_state = "TITLE"
+        end
+    end
+end
+
+-- ============================================================================
+-- NanoVG Render
+-- ============================================================================
+function HandleNanoVGRender(eventType, eventData)
+    if vg == nil then return end
+
+    local physW = graphics:GetWidth()
+    local physH = graphics:GetHeight()
+    local dpr = graphics:GetDPR()
+
+    -- Begin frame using system logical resolution
+    local logW = physW / dpr
+    local logH = physH / dpr
+    nvgBeginFrame(vg, logW, logH, dpr)
+
+    -- Scale to design resolution (480x270) with letterboxing
+    local scaleX = logW / W
+    local scaleY = logH / H
+    local scale = math.min(scaleX, scaleY)
+    local offsetX = (logW - W * scale) / 2
+    local offsetY = (logH - H * scale) / 2
+
+    nvgSave(vg)
+    nvgTranslate(vg, offsetX, offsetY)
+    nvgScale(vg, scale, scale)
+
+    -- Letterbox bars (black)
+    -- (Drawn outside design area, but we clip via the background fill)
+
+    -- Full background
+    nvgBeginPath(vg)
+    nvgRect(vg, 0, 0, W, H)
+    nvgFillColor(vg, nvgRGBAf(COLORS.bg[1], COLORS.bg[2], COLORS.bg[3], 1))
+    nvgFill(vg)
+
+    -- Draw based on game state
+    if game_state == "TITLE" then
+        draw_title_screen(vg)
+    elseif game_state == "GAME" then
+        draw_arena(vg)
+        draw_enemies(vg)
+        draw_player(vg)
+        draw_hud(vg)
+        draw_floating_texts(vg)
+    elseif game_state == "BUY" then
+        draw_shop(vg)
+        draw_floating_texts(vg)
+    elseif game_state == "GAME_OVER" then
+        draw_game_over_screen(vg)
+        draw_floating_texts(vg)
+    end
+
+    nvgRestore(vg)
+    nvgEndFrame(vg)
+end
+
+-- ============================================================================
+-- Title Screen
+-- ============================================================================
+function draw_title_screen(vg)
+    -- Title
+    nvgFontFace(vg, "game")
+    nvgFontSize(vg, 32)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBAf(1, 1, 1, 1))
+    nvgText(vg, W / 2, H * 0.3, "SNKRX")
+
+    -- Subtitle
+    nvgFontSize(vg, 10)
+    nvgFillColor(vg, nvgRGBAf(0.6, 0.6, 0.8, 0.8))
+    nvgText(vg, W / 2, H * 0.3 + 25, "Snake + Auto Battler + Arena Shooter")
+
+    -- Decorative snake preview
+    local cx = W / 2
+    local cy = H * 0.55
+    local preview_units = {"warrior", "mage", "ranger", "healer", "rogue"}
+    for i, key in ipairs(preview_units) do
+        local data = UNIT_DATA[key]
+        if data then
+            local angle = (i - 1) * 0.8 - 1.6
+            local px = cx + math.cos(angle + title_blink * 0.5) * (20 + i * 15)
+            local py = cy + math.sin(angle + title_blink * 0.5) * 10
+            draw_circle_outline(vg, px, py, data.radius + 1, data.color, 1)
+        end
+    end
+
+    -- Blink prompt
+    local blink_alpha = 0.4 + math.sin(title_blink * 3) * 0.4
+    nvgFontSize(vg, 12)
+    nvgFillColor(vg, nvgRGBAf(1, 1, 1, blink_alpha))
+    nvgText(vg, W / 2, H * 0.82, "Press SPACE to Start")
+
+    -- Credits
+    nvgFontSize(vg, 7)
+    nvgFillColor(vg, nvgRGBAf(0.4, 0.4, 0.5, 0.6))
+    nvgText(vg, W / 2, H - 10, "Original by a327ex - UrhoX Port")
+end
+
+-- ============================================================================
+-- Game Over Screen
+-- ============================================================================
+function draw_game_over_screen(vg)
+    -- Dark overlay
+    nvgBeginPath(vg)
+    nvgRect(vg, 0, 0, W, H)
+    nvgFillColor(vg, nvgRGBAf(0, 0, 0, 0.7))
+    nvgFill(vg)
+
+    nvgFontFace(vg, "game")
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+
+    -- Game Over text
+    nvgFontSize(vg, 28)
+    nvgFillColor(vg, nvgRGBAf(0.9, 0.2, 0.2, 1))
+    nvgText(vg, W / 2, H * 0.3, "GAME OVER")
+
+    -- Stats
+    nvgFontSize(vg, 12)
+    nvgFillColor(vg, nvgRGBAf(1, 1, 1, 0.9))
+    nvgText(vg, W / 2, H * 0.45, "Score: " .. score)
+
+    nvgFontSize(vg, 10)
+    nvgFillColor(vg, nvgRGBAf(0.7, 0.7, 0.8, 0.8))
+    nvgText(vg, W / 2, H * 0.55, "Rounds Survived: " .. (round - 1))
+
+    -- Party display
+    nvgFontSize(vg, 8)
+    nvgFillColor(vg, nvgRGBAf(0.6, 0.6, 0.7, 0.7))
+    nvgText(vg, W / 2, H * 0.65, "Your Party:")
+
+    local party_x = W / 2 - (#snake_units - 1) * 12
+    for i, key in ipairs(snake_units) do
+        local data = UNIT_DATA[key]
+        if data then
+            draw_circle_outline(vg, party_x + (i - 1) * 24, H * 0.72, data.radius, data.color, 1)
+        end
+    end
+
+    -- Restart prompt
+    local blink_alpha = 0.4 + math.sin(title_blink * 3) * 0.4
+    nvgFontSize(vg, 11)
+    nvgFillColor(vg, nvgRGBAf(1, 1, 1, blink_alpha))
+    nvgText(vg, W / 2, H * 0.88, "Press SPACE to Return")
+end

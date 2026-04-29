@@ -1,0 +1,91 @@
+{
+    "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
+    "emmyluaDir": "../.emmylua",
+    "runtime": {
+        "version": "Lua 5.4",
+        "special": {
+            "tolua": "require"
+        },
+        "path": [
+            "?.lua",
+            "?/init.lua",
+            "../?.lua",
+            "../?/init.lua"
+        ]
+    },
+    "workspace": {
+        "library": [
+            "../.emmylua",
+            "../urhox-libs"
+        ],
+        "checkThirdParty": false
+    },
+    "diagnostics": {
+        "severity": {
+            "undefined-global": "Error",
+            "undefined-field": "Warning",
+            "missing-parameter": "Error",
+            "param-type-mismatch": "Warning",
+            "undefined-doc-name": "Error",
+            "undefined-doc-param": "Error",
+            "undefined-doc-class": "Error",
+            "circle-doc-class": "Error",
+            "redundant-parameter": "Warning",
+            "unused-function": "Warning",
+            "global-in-nil-env": "Warning",
+            "redundant-value": "Warning",
+            "unused-local": "Hint",
+            "trailing-space": "Hint",
+            "empty-block": "Hint",
+            "inject-field": "Hint",
+            "duplicate-set-field": "Hint",
+            "cast-local-type": "Hint",
+            "redefined-local": "Hint"
+        },
+        "groupSeverity": {
+            "strong": "Fallback",
+            "strict": "Fallback",
+            "ambiguity": "Fallback"
+        },
+        "neededFileStatus": {
+            "undefined-field": "Any!"
+        },
+        "globals": [
+            "tolua",
+            "fg", "bg", "red", "green", "blue", "yellow", "orange", "purple",
+            "white", "black", "blue2", "yellow2", "fg_alt",
+            "fg_transparent", "bg_transparent", "red_transparent", "green_transparent",
+            "blue_transparent", "yellow_transparent", "orange_transparent", "purple_transparent",
+            "white_transparent", "black_transparent", "blue2_transparent", "yellow2_transparent",
+            "fg_alt_transparent",
+            "fg_transparent_weak", "bg_transparent_weak", "red_transparent_weak",
+            "green_transparent_weak", "blue_transparent_weak", "yellow_transparent_weak",
+            "orange_transparent_weak", "purple_transparent_weak", "white_transparent_weak",
+            "black_transparent_weak", "blue2_transparent_weak", "yellow2_transparent_weak",
+            "fg_alt_transparent_weak",
+            "modal_transparent", "modal_transparent_2", "bg_off", "bg_gradient",
+            "slow_amount", "music_slow_amount",
+            "sfx", "music",
+            "fat_font", "pixul_font",
+            "background_canvas", "main_canvas", "shadow_canvas", "star_canvas",
+            "shadow_shader", "star_group", "star_positions",
+            "player", "Overlord", "n"
+        ],
+        "disable": [
+            "lowercase-global"
+        ]
+    },
+    "completion": {
+        "autoRequire": false
+    },
+    "hint": {
+        "enable": true,
+        "setType": true
+    },
+    "type": {
+        "weakNilCheck": true,
+        "weakUnionCheck": true,
+        "castNumberToInteger": true,
+        "castStringToEnum": true
+    }
+}
