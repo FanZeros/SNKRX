@@ -2107,11 +2107,21 @@ function Projectile:init(args)
   if self.parent.flying_daggers and table.any(self.parent.classes, function(v) return v == 'rogue' end) then
     self.chain = self.chain + ((self.parent.flying_daggers == 1 and 2) or (self.parent.flying_daggers == 2 and 3) or (self.parent.flying_daggers == 3 and 4))
   end
+
+  self.ttl = 10  -- maximum lifetime in seconds (safety net)
 end
 
 
 function Projectile:update(dt)
   self:update_game_object(dt)
+
+  -- Safety net: TTL and out-of-bounds cleanup
+  self.ttl = (self.ttl or 10) - dt
+  if self.ttl <= 0 then self.dead = true; return end
+  local margin = 100
+  if self.x < -gw/2 - margin or self.x > gw/2 + margin or self.y < -gh/2 - margin or self.y > gh/2 + margin then
+    self.dead = true; return
+  end
 
   if self.character == 'psyker' then
     if self.parent.dead then self.dead = true; self.parent = nil; return end
@@ -2204,12 +2214,14 @@ end
 
 function Projectile:die(x, y, r, n)
   if self.dead then return end
+  -- Set dead FIRST to guarantee cleanup even if effects creation fails
+  self.dead = true
   x = x or self.x
   y = y or self.y
   n = n or random:int(3, 4)
+  if not main.current or not main.current.effects then return end
   for i = 1, n do HitParticle{group = main.current.effects, x = x, y = y, r = random:float(0, 2*math.pi), color = self.color} end
   HitCircle{group = main.current.effects, x = x, y = y}:scale_down()
-  self.dead = true
 
   if self.character == 'wizard' then
     Area{group = main.current.effects, x = self.x, y = self.y, r = self.r, w = self.parent.area_size_m*24, color = self.color, dmg = self.parent.area_dmg_m*self.dmg, character = self.character, level = self.level, parent = self,
@@ -2232,6 +2244,7 @@ end
 
 
 function Projectile:on_collision_enter(other, contact)
+  if not main.current then return end
   local x, y = contact:getPositions()
   local nx, ny = contact:getNormal()
   local r = 0
