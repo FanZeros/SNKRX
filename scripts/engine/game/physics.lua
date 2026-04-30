@@ -482,6 +482,10 @@ function Physics:update_position()
     local pos = self.physics_node.position2D
     self.x, self.y = pos.x, pos.y
   end
+  if self.shape then
+    self.shape.x = self.x
+    self.shape.y = self.y
+  end
   return self
 end
 
@@ -491,6 +495,10 @@ function Physics:set_position(x, y)
     self.physics_node.position2D = Vector2(x, y)
   end
   self.x, self.y = x, y
+  if self.shape then
+    self.shape.x = x
+    self.shape.y = y
+  end
   return self
 end
 
