@@ -1,23 +1,2 @@
-# Build / runtime
 .build/
 dist/
-.tmp/
-logs/
-
-# Engine internal (read-only, not part of user project)
-engine-docs/
-examples/
-templates/
-urhox-libs/
-schemas/
-lua-tools/
-.emmylua/
-
-# AI / editor config
-.claude/
-.agent/
-.cli/
-prompts/
-
-# Project config (auto-generated)
-.project/

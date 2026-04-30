@@ -37,17 +37,19 @@ function Image:draw(x, y, r, sx, sy, ox, oy, color)
   if isx ~= 1 or isy ~= 1 then nvgScale(vg, isx, isy) end
   local draw_ox = self.w / 2 + (ox or 0)
   local draw_oy = self.h / 2 + (oy or 0)
-  local alpha = (color and color.a) or 1
-  local paint = nvgImagePattern(vg, -draw_ox, -draw_oy, self.w, self.h, 0, self.nvg_image, alpha)
+
+  local paint
+  if color then
+    local tint = nvgRGBAf(color.r, color.g, color.b, color.a or 1)
+    paint = nvgImagePatternTinted(vg, -draw_ox, -draw_oy, self.w, self.h, 0, self.nvg_image, tint)
+  else
+    paint = nvgImagePattern(vg, -draw_ox, -draw_oy, self.w, self.h, 0, self.nvg_image, 1)
+  end
   nvgBeginPath(vg)
   nvgRect(vg, -draw_ox, -draw_oy, self.w, self.h)
   nvgFillPaint(vg, paint)
   nvgFill(vg)
   nvgRestore(vg)
-  if color then
-    nvgFillColor(vg, nvgRGBAf(1, 1, 1, 1))
-    nvgStrokeColor(vg, nvgRGBAf(1, 1, 1, 1))
-  end
 end
 
 
@@ -77,8 +79,6 @@ function Quad:draw(x, y, r, sx, sy, ox, oy)
   local draw_oy = self.h / 2 + (oy or 0)
   -- Use NanoVG scissor to clip to the quad region and shift the image pattern
   local src_img = self.source_image
-  local img_sx = src_img.w / self.w
-  local img_sy = src_img.h / self.h
   local paint = nvgImagePattern(vg,
     -draw_ox - self.src_x, -draw_oy - self.src_y,
     src_img.w, src_img.h, 0, self.nvg_image, 1)
@@ -132,7 +132,7 @@ function GradientImage:draw(x, y, w, h, r, sx, sy, ox, oy)
         local seg_h = gh / n
         paint = nvgLinearGradient(vg, gx, seg_y, gx, seg_y + seg_h, col1, col2)
         nvgBeginPath(vg)
-        nvgRect(vg, gx, gy, gw, seg_h)
+        nvgRect(vg, gx, seg_y, gw, seg_h)
       end
       nvgFillPaint(vg, paint)
       nvgFill(vg)

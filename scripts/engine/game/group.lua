@@ -374,6 +374,15 @@ function Group:_on_physics_begin_contact(eventData)
   local ob = nodeB.gameObject
   if not oa or not ob then return end
 
+  -- Sync positions from physics engine before processing callbacks.
+  -- PhysicsBeginContact2D fires during the physics step, BEFORE
+  -- update_game_object syncs self.x/self.y from the physics node.
+  -- Without this, collision callbacks use stale positions from the
+  -- previous frame, causing spawned effects (HitParticle etc.) to
+  -- appear at wrong locations.
+  if oa.update_position then oa:update_position() end
+  if ob.update_position then ob:update_position() end
+
   -- Determine if either is a sensor/trigger
   local shapeA = eventData["ShapeA"]:GetPtr("CollisionShape2D")
   local shapeB = eventData["ShapeB"]:GetPtr("CollisionShape2D")
@@ -383,22 +392,88 @@ function Group:_on_physics_begin_contact(eventData)
   -- Build a Contact wrapper with position/normal info from UrhoX
   local contact = nil
   if Contact then
-    -- Extract contact point info from UrhoX Physics2D event data
-    -- UrhoX provides contact world point and normal via eventData
     local cx, cy, cnx, cny = 0, 0, 0, -1
-    -- Approximate contact point as midpoint between objects
-    if oa.x and oa.y and ob.x and ob.y then
-      cx = (oa.x + ob.x) * 0.5
-      cy = (oa.y + ob.y) * 0.5
-      -- Normal from A to B
-      local dx = ob.x - oa.x
-      local dy = ob.y - oa.y
-      local len = math.sqrt(dx * dx + dy * dy)
-      if len > 0.0001 then
-        cnx = dx / len
-        cny = dy / len
+    local got_contact = false
+
+    -- Try to extract real contact data from Contacts buffer (2D format: position Vector2 + normal Vector2)
+    local ok, contacts_var = pcall(function() return eventData:GetVariant("Contacts") end)
+    if ok and contacts_var then
+      local buf_ok, buf = pcall(function() return contacts_var:GetBuffer() end)
+      if buf_ok and buf and not buf.eof then
+        -- Read first contact point: position (x,y) + normal (nx,ny)
+        local pos_ok, pos = pcall(function() return buf:ReadVector2() end)
+        if pos_ok and pos then
+          cx = pos.x
+          cy = pos.y
+          local norm_ok, norm = pcall(function() return buf:ReadVector2() end)
+          if norm_ok and norm then
+            cnx = norm.x
+            cny = norm.y
+            got_contact = true
+          end
+        end
       end
     end
+
+    -- Fallback: use velocity-based wall normal for proper mirror reflection
+    if not got_contact then
+      if oa.x and oa.y and ob.x and ob.y then
+        cx = (oa.x + ob.x) * 0.5
+        cy = (oa.y + ob.y) * 0.5
+
+        -- For wall collisions (chain shapes), determine which wall edge was hit
+        -- by checking which arena boundary the moving object is closest to.
+        local use_velocity_fallback = false
+        if (oa.get_velocity and ob.vertices) or (ob.get_velocity and oa.vertices) then
+          -- One is a moving body, other is a wall (chain shape)
+          local mover = oa.get_velocity and oa or ob
+          local wall_obj = oa.get_velocity and ob or oa
+          -- Determine closest wall edge using mover position relative to arena center
+          -- Wall vertices form a rectangle; find which edge is nearest
+          if wall_obj.vertices and #wall_obj.vertices >= 8 then
+            -- Arena walls: find min distance to each edge
+            local mx, my = mover.x, mover.y
+            -- Extract bounding rect from chain vertices
+            local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
+            for vi = 1, #wall_obj.vertices, 2 do
+              local vx, vy = wall_obj.vertices[vi], wall_obj.vertices[vi+1]
+              if vx < minX then minX = vx end
+              if vx > maxX then maxX = vx end
+              if vy < minY then minY = vy end
+              if vy > maxY then maxY = vy end
+            end
+            -- Distance to each edge
+            local dLeft = math.abs(mx - minX)
+            local dRight = math.abs(mx - maxX)
+            local dTop = math.abs(my - minY)
+            local dBottom = math.abs(my - maxY)
+            local dMin = math.min(dLeft, dRight, dTop, dBottom)
+            if dMin == dLeft then
+              cnx, cny = -1, 0   -- wall is to the left, normal points left (into mover)
+            elseif dMin == dRight then
+              cnx, cny = 1, 0    -- wall is to the right
+            elseif dMin == dTop then
+              cnx, cny = 0, -1   -- wall is at top
+            else
+              cnx, cny = 0, 1    -- wall is at bottom
+            end
+            use_velocity_fallback = true
+          end
+        end
+
+        if not use_velocity_fallback then
+          -- Generic fallback: use position difference
+          local dx = ob.x - oa.x
+          local dy = ob.y - oa.y
+          local len = math.sqrt(dx * dx + dy * dy)
+          if len > 0.0001 then
+            cnx = dx / len
+            cny = dy / len
+          end
+        end
+      end
+    end
+
     contact = Contact(cx, cy, cnx, cny)
   end
 

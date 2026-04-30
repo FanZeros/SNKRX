@@ -107,18 +107,21 @@ end
 
 -- Resets the timer for a tag.
 function Trigger:reset(tag)
+  if not self.triggers[tag] then return end
   self.triggers[tag].timer = 0
 end
 
 
 -- Returns the delay of a given tag.
 function Trigger:get_delay(tag)
+  if not self.triggers[tag] then return end
   return self.triggers[tag].delay
 end
 
 
 -- Returns the current iteration of an every trigger action with the given tag.
 function Trigger:get_every_iteration(tag)
+  if not self.triggers[tag] then return 0 end
   return self.triggers[tag].max_times - self.triggers[tag].times 
 end
 
@@ -251,13 +254,18 @@ function Trigger:update(dt)
       trigger.last_condition = condition
 
     elseif trigger.type == "tween" then
-      local t = trigger.method(trigger.timer/trigger.delay)
-      for k, v in pairs(trigger.source) do
-        trigger.target[k] = math.lerp(t, trigger.initial_values[k], v)
-      end
       if trigger.timer > trigger.delay then
+        -- Snap to exact final values before firing callback to avoid overshoot
+        for k, v in pairs(trigger.source) do
+          trigger.target[k] = v
+        end
         trigger.after()
         self.triggers[tag] = nil
+      else
+        local t = trigger.method(trigger.timer/trigger.delay)
+        for k, v in pairs(trigger.source) do
+          trigger.target[k] = math.lerp(t, trigger.initial_values[k], v)
+        end
       end
     end
   end

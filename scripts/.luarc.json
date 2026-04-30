@@ -40,7 +40,7 @@
             "inject-field": "Hint",
             "duplicate-set-field": "Hint",
             "cast-local-type": "Hint",
-            "redefined-local": "Hint"
+            "redefined-local": "Error"
         },
         "groupSeverity": {
             "strong": "Fallback",
@@ -51,25 +51,7 @@
             "undefined-field": "Any!"
         },
         "globals": [
-            "tolua",
-            "fg", "bg", "red", "green", "blue", "yellow", "orange", "purple",
-            "white", "black", "blue2", "yellow2", "fg_alt",
-            "fg_transparent", "bg_transparent", "red_transparent", "green_transparent",
-            "blue_transparent", "yellow_transparent", "orange_transparent", "purple_transparent",
-            "white_transparent", "black_transparent", "blue2_transparent", "yellow2_transparent",
-            "fg_alt_transparent",
-            "fg_transparent_weak", "bg_transparent_weak", "red_transparent_weak",
-            "green_transparent_weak", "blue_transparent_weak", "yellow_transparent_weak",
-            "orange_transparent_weak", "purple_transparent_weak", "white_transparent_weak",
-            "black_transparent_weak", "blue2_transparent_weak", "yellow2_transparent_weak",
-            "fg_alt_transparent_weak",
-            "modal_transparent", "modal_transparent_2", "bg_off", "bg_gradient",
-            "slow_amount", "music_slow_amount",
-            "sfx", "music",
-            "fat_font", "pixul_font",
-            "background_canvas", "main_canvas", "shadow_canvas", "star_canvas",
-            "shadow_shader", "star_group", "star_positions",
-            "player", "Overlord", "n"
+            "tolua"
         ],
         "disable": [
             "lowercase-global"

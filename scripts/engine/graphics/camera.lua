@@ -31,7 +31,7 @@ end
 
 
 function Shake:get_decay(t)
-  if t > self.duration then return end
+  if t > self.duration then return 0 end
   return (self.duration - t) / self.duration
 end
 
@@ -42,10 +42,11 @@ function Shake:get_amplitude(t)
     t = self.t
   end
   local s = (t / 1000) * self.frequency
-  local s0 = math.floor(s)
+  local s0 = math.floor(s) + 1  -- Lua arrays are 1-based
   local s1 = s0 + 1
+  local frac = s - math.floor(s)
   local k = self:get_decay(t)
-  return self.amplitude * (self:get_noise(s0) + (s - s0) * (self:get_noise(s1) - self:get_noise(s0))) * k
+  return self.amplitude * (self:get_noise(s0) + frac * (self:get_noise(s1) - self:get_noise(s0))) * k
 end
 
 

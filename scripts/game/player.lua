@@ -1471,6 +1471,12 @@ function Player:on_collision_enter(other, contact)
       self.hfx:use('hit', 0.5, 200, 10, 0.1)
       camera:spring_shake(2, math.pi - self.r)
       self:bounce(contact:getNormal())
+      -- After bounce, sync self.r to the reflected velocity direction
+      -- so that the per-frame set_velocity(total_v*cos(self.r), ...) won't overwrite the bounce.
+      local bvx, bvy = self:get_velocity()
+      if math.abs(bvx) > 0.01 or math.abs(bvy) > 0.01 then
+        self.r = math.atan(bvy, bvx)
+      end
       local r = random:float(0.9, 1.1)
       player_hit_wall1:play{pitch = r, volume = 0.1}
       pop1:play{pitch = r, volume = 0.2}
@@ -1504,7 +1510,7 @@ function Player:on_collision_enter(other, contact)
       end
     end
 
-  elseif table.any(main.current.enemies, function(v) return other:is(v) end) then
+  elseif main.current and main.current.enemies and table.any(main.current.enemies, function(v) return other:is(v) end) then
     other:push(random:float(25, 35)*(self.knockback_m or 1), self:angle_to_object(other))
     if self.character == 'vagrant' or self.character == 'psykeeper' then other:hit(2*self.dmg)
     else other:hit(self.dmg) end
@@ -2280,8 +2286,9 @@ end
 
 function Projectile:on_trigger_enter(other, contact)
   if self.character == 'sage' then return end
+  if not main.current then return end
 
-  if table.any(main.current.enemies, function(v) return other:is(v) end) then
+  if main.current.enemies and table.any(main.current.enemies, function(v) return other:is(v) end) then
     if self.pierce <= 0 and self.chain <= 0 then
       self:die(self.x, self.y, nil, random:int(2, 3))
     else
@@ -3018,6 +3025,7 @@ end
 
 
 function ForceField:on_collision_enter(other, contact)
+  if not main.current or not main.current.enemies then return end
   local x, y = contact:getPositions()
   if table.any(main.current.enemies, function(v) return other:is(v) end) then
     other:push(random:float(15, 20)*(self.parent.knockback_m or 1), self.parent:angle_to_object(other))
@@ -3367,6 +3375,7 @@ end
 
 
 function Pet:on_trigger_enter(other)
+  if not main.current or not main.current.enemies then return end
   if table.any(main.current.enemies, function(v) return other:is(v) end) then
     if self.pierce <= 0 then
       camera:shake(2, 0.5)
@@ -3454,6 +3463,7 @@ end
 
 
 function Bomb:on_collision_enter(other, contact)
+  if not main.current or not main.current.enemies then return end
   if table.any(main.current.enemies, function(v) return other:is(v) end) then
     self:explode()
   end
@@ -3514,6 +3524,7 @@ end
 
 
 function Saboteur:on_collision_enter(other, contact)
+  if not main.current or not main.current.enemies then return end
   if table.any(main.current.enemies, function(v) return other:is(v) end) then
     camera:shake(4, 0.5)
     local t = {group = main.current.effects, x = self.x, y = self.y, r = self.r, w = (self.crit and 1.5 or 1)*self.area_size_m*64, color = self.color, 

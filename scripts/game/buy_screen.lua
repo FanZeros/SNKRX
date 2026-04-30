@@ -1380,6 +1380,13 @@ function PassiveCard:update(dt)
     self.arena.choosing_passives = false
     table.insert(self.arena.passives, {passive = self.passive, level = 1, xp = 0})
     self.arena:restore_passives_to_pool(self.card_i)
+    -- Fix deadlock: slow_amount may be 0 here (tweened to 0 before passive selection),
+    -- which prevents trigger:update(dt*0) from advancing any tween.
+    -- Restore immediately so the transition tween can proceed.
+    slow_amount = 1
+    music_slow_amount = 1
+    trigger:cancel('slow_amount')
+    trigger:cancel('music_slow_amount')
     trigger:tween(0.25, _G, {slow_amount = 1, music_slow_amount = 1}, math.linear, function()
       slow_amount = 1
       music_slow_amount = 1

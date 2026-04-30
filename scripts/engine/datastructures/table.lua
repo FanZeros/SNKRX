@@ -282,7 +282,7 @@ function table.flatten(t, shallow)
   local out = {}
   local u
   for k, v in ipairs(t) do
-    if type(v) == "table" and getmetatable(t) == nil then
+    if type(v) == "table" and getmetatable(v) == nil then
       u = shallow and v or table.flatten(v)
       for _, x in ipairs(u) do
         table.insert(out, x)

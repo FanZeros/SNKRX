@@ -349,6 +349,9 @@ end
 
 
 function Arena:update(dt)
+  -- Enable touch zone steering only during active combat (not paused/died/won/choosing)
+  input.touch_zone_steering = not self.paused and not self.died and not self.won and not self.choosing_passives
+
   if main_song_instance:isStopped() then
     main_song_instance = _G[random:table{'song1', 'song2', 'song3', 'song4', 'song5'}]:play{volume = 0.5}
   end

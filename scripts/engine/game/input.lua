@@ -104,6 +104,7 @@ function Input:init(joystick_index)
   self.actions = {}
   self.textinput_buffer = ''
   self.last_key_pressed = nil
+  self.touch_zone_steering = false  -- set true during active gameplay to enable left/right screen zone steering
   return self
 end
 
@@ -130,6 +131,25 @@ function Input:poll_urho()
     if is_down and not was_down then
       self.last_key_pressed = love_btn
     end
+  end
+
+  -- Touch/click zone steering: left-click on left half → m1 (move_left),
+  -- left-click on right half → m2 (move_right).
+  -- Only active during gameplay (touch_zone_steering flag set by game code).
+  if self.touch_zone_steering and self.mouse_state.m1 and not urho_input:GetMouseButtonDown(MOUSEB_RIGHT) then
+    -- Only remap when it's a pure left-click (not actual right-click)
+    local dpr = urho_graphics:GetDPR()
+    local screen_w = urho_graphics:GetWidth() / dpr
+    local mx = urho_input.mousePosition.x / dpr
+    if mx >= screen_w / 2 then
+      -- Right half of screen: remap m1 → m2
+      self.mouse_state.m1 = false
+      self.mouse_state.m2 = true
+      if self.last_key_pressed == 'm1' then
+        self.last_key_pressed = 'm2'
+      end
+    end
+    -- Left half: m1 stays as-is (already true)
   end
 
   -- Mouse wheel: UrhoX provides GetMouseMoveWheel() which returns delta

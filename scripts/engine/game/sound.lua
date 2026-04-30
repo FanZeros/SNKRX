@@ -15,8 +15,8 @@ function Sound:init(filename, args)
   self.tag = args and args.tag
   self.tags = args and args.tags  -- support {tags = {music}} style
   self.filename = filename
-  self.volume = 0.5
-  self.pitch = 1.0
+  -- Store volume/pitch in a hidden table so __newindex always fires for them
+  rawset(self, '_snd_props', { volume = 0.5, pitch = 1.0 })
   -- Original SNKRX prepends 'assets/sounds/' to filename.
   -- In UrhoX, assets/ is a resource root, so we prepend 'sounds/'.
   local path = "sounds/" .. filename
@@ -39,9 +39,9 @@ function Sound:play(volume_or_args, args)
     volume = volume_or_args or 0.5
   end
 
-  -- Store current volume/pitch for later tween access
-  rawset(self, 'volume', volume)
-  rawset(self, 'pitch', pitch)
+  -- Store current volume/pitch in hidden props table
+  self._snd_props.volume = volume
+  self._snd_props.pitch = pitch
 
   if self.resource and scene_ then
     -- Stop previous playback if we have an active source
@@ -58,6 +58,12 @@ function Sound:play(volume_or_args, args)
     local tag_volume = 1
     if self.tag then
       if self.tag.volume then tag_volume = self.tag.volume end
+    elseif self.tags then
+      for _, t in ipairs(self.tags) do
+        if type(t) == 'table' and t.volume ~= nil then
+          tag_volume = t.volume
+        end
+      end
     end
     local gain = volume * (sfx_volume or 1) * tag_volume
     src:Play(self.resource, self.resource.frequency * pitch, gain)
@@ -108,20 +114,46 @@ function Sound:_sync_properties()
           end
         end
       end
-      src:SetGain((self.volume or 0.5) * (sfx_volume or 1) * tag_volume)
+      local props = rawget(self, '_snd_props') or {}
+      src:SetGain((props.volume or 0.5) * (sfx_volume or 1) * tag_volume)
       -- Pitch: scale the base frequency
       local base_freq = self.resource and self.resource.frequency or 44100
-      src:SetFrequency(base_freq * (self.pitch or 1))
+      src:SetFrequency(base_freq * (props.pitch or 1))
     end
   end
 end
 
 
--- Auto-sync when tween system sets volume/pitch via direct assignment
-local _Sound_mt_newindex = Sound.__newindex
-function Sound:__newindex(k, v)
-  rawset(self, k, v)
-  if (k == 'volume' or k == 'pitch') and self._source_node then
-    self:_sync_properties()
+-- Auto-sync when tween system sets volume/pitch via direct assignment.
+-- volume/pitch are stored in _snd_props (never rawset on instance) so __newindex
+-- fires every time the tween system writes to them.
+local _Sound_base_index = Sound.__index
+function Sound:__index(k)
+  -- Check _snd_props first for volume/pitch
+  if k == 'volume' or k == 'pitch' then
+    local props = rawget(self, '_snd_props')
+    if props then return props[k] end
   end
+  -- Fall through to normal class lookup
+  local raw = rawget(self, k)
+  if raw ~= nil then return raw end
+  if type(_Sound_base_index) == 'table' then
+    return _Sound_base_index[k]
+  elseif type(_Sound_base_index) == 'function' then
+    return _Sound_base_index(self, k)
+  end
+end
+
+function Sound:__newindex(k, v)
+  if (k == 'volume' or k == 'pitch') then
+    local props = rawget(self, '_snd_props')
+    if props then
+      props[k] = v
+      if rawget(self, '_source_node') then
+        self:_sync_properties()
+      end
+      return
+    end
+  end
+  rawset(self, k, v)
 end

@@ -162,9 +162,20 @@ function GameObject:get_closest_object_in_shape(shape, class_list)
   return closest
 end
 
---- Destroy / mark dead
+--- Destroy / mark dead and clean up physics resources
 function GameObject:destroy()
   self.dead = true
+  -- Clean up physics node if this object has physics (Physics mixin)
+  if self.physics_node then
+    self.physics_node:Remove()
+    self.physics_node = nil
+    self.body = nil
+    self.fixture_component = nil
+    self.sensor_component = nil
+  end
+  if self.group and self.group._physics_nodes and self.id then
+    self.group._physics_nodes[self.id] = nil
+  end
 end
 
 function GameObject:is_dead()

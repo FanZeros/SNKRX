@@ -388,7 +388,7 @@ end
 
 
 function Layer:circle(x, y, rs, color, line_width)
-  table.insert(self.draw_commands, {type = 'circle', x = x, y = y, rs = rs, color = color, line_width = line_width or 1})
+  table.insert(self.draw_commands, {type = 'circle', x = x, y = y, rs = rs, color = color, line_width = line_width or 0})
 end
 
 
@@ -413,7 +413,7 @@ end
 
 
 function Layer:polygon(vertices, color, line_width)
-  table.insert(self.draw_commands, {type = 'polygon', vertices = vertices, color = color, line_width = line_width or 1})
+  table.insert(self.draw_commands, {type = 'polygon', vertices = vertices, color = color, line_width = line_width or 0})
 end
 
 
@@ -423,7 +423,7 @@ end
 
 
 function Layer:triangle(x, y, w, h, r, color, line_width)
-  table.insert(self.draw_commands, {type = 'triangle', x = x, y = y, w = w, h = h, r = r, color = color, line_width = line_width or 1})
+  table.insert(self.draw_commands, {type = 'triangle', x = x, y = y, w = w, h = h, r = r, color = color, line_width = line_width or 0})
 end
 
 
@@ -432,13 +432,13 @@ function Layer:dashed_triangle(x, y, w, h, r, color, line_width, dash_size, dash
 end
 
 
-function Layer:rectangle(x, y, w, h, rx, ry, r, color, line_width)
-  table.insert(self.draw_commands, {type = 'rectangle', x = x, y = y, w = w, h = h, rx = rx or 0, ry = ry or 0, r = r or 0, color = color, line_width = line_width or 1})
+function Layer:rectangle(x, y, w, h, rx, ry, color, line_width)
+  table.insert(self.draw_commands, {type = 'rectangle', x = x, y = y, w = w, h = h, rx = rx or 0, ry = ry or 0, r = 0, color = color, line_width = line_width or 0})
 end
 
 
-function Layer:dashed_rectangle(x, y, w, h, rx, ry, r, color, line_width, dash_size, dash_gap)
-  table.insert(self.draw_commands, {type = 'dashed_rectangle', x = x, y = y, w = w, h = h, rx = rx or 0, ry = ry or 0, r = r or 0, color = color, line_width = line_width or 1, dash_size = dash_size or 6, dash_gap = dash_gap or 4})
+function Layer:dashed_rectangle(x, y, w, h, rx, ry, color, line_width, dash_size, dash_gap)
+  table.insert(self.draw_commands, {type = 'dashed_rectangle', x = x, y = y, w = w, h = h, rx = rx or 0, ry = ry or 0, r = 0, color = color, line_width = line_width or 1, dash_size = dash_size or 6, dash_gap = dash_gap or 4})
 end
 
 
@@ -712,7 +712,6 @@ function Layer:draw_commands_f()
 
     elseif c.type == 'image' then
       if c.image and c.image.nvg_image then
-        set_nvg_color(c.color)
         nvgSave(vg)
         nvgTranslate(vg, c.x, c.y)
         if c.r and c.r ~= 0 then nvgRotate(vg, c.r) end
@@ -720,13 +719,18 @@ function Layer:draw_commands_f()
         local isy = c.sy or isx
         if isx ~= 1 or isy ~= 1 then nvgScale(vg, isx, isy) end
         local iw, ih = c.image.w, c.image.h
-        local paint = nvgImagePattern(vg, -iw / 2, -ih / 2, iw, ih, 0, c.image.nvg_image, c.color and c.color.a or 1)
+        local paint
+        if c.color then
+          local tint = nvgRGBAf(c.color.r, c.color.g, c.color.b, c.color.a or 1)
+          paint = nvgImagePatternTinted(vg, -iw / 2, -ih / 2, iw, ih, 0, c.image.nvg_image, tint)
+        else
+          paint = nvgImagePattern(vg, -iw / 2, -ih / 2, iw, ih, 0, c.image.nvg_image, 1)
+        end
         nvgBeginPath(vg)
         nvgRect(vg, -iw / 2, -ih / 2, iw, ih)
         nvgFillPaint(vg, paint)
         nvgFill(vg)
         nvgRestore(vg)
-        reset_nvg_color()
       end
 
     elseif c.type == 'gradient_rect' then

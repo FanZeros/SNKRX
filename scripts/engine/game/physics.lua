@@ -82,7 +82,7 @@ function Physics:_create_physics_body(body_type, tag)
 end
 
 
-function Physics:_setup_collision_shape(shape_component)
+function Physics:_setup_collision_shape(shape_component, shape_type, shape_params)
   local tag_data = self.group.collision_tags[self.tag]
   if tag_data then
     local cat_bit = category_to_bit(tag_data.category)
@@ -95,10 +95,39 @@ function Physics:_setup_collision_shape(shape_component)
   -- Create sensor shape if trigger tags exist
   local trigger_data = self.group.trigger_tags[self.tag]
   if trigger_data and #trigger_data.triggers > 0 then
-    -- We'll create a duplicate shape as a sensor
     self._has_sensor = true
-    -- The sensor is handled by setting trigger=true on a duplicate shape
-    -- For simplicity, we track this and handle it in collision callbacks
+    -- Create a duplicate shape as a sensor/trigger for overlap detection
+    local sensor
+    if shape_type == 'box' then
+      sensor = self.physics_node:CreateComponent("CollisionBox2D")
+      sensor:SetSize(shape_params.w, shape_params.h)
+      sensor:SetCenter(0, 0)
+    elseif shape_type == 'circle' then
+      sensor = self.physics_node:CreateComponent("CollisionCircle2D")
+      sensor:SetRadius(shape_params.r)
+      sensor:SetCenter(0, 0)
+    elseif shape_type == 'polygon' then
+      sensor = self.physics_node:CreateComponent("CollisionPolygon2D")
+      if shape_params.vertices then
+        local count = #shape_params.vertices / 2
+        sensor:SetVertexCount(count)
+        for i = 1, count do
+          sensor:SetVertex(i - 1, Vector2(shape_params.vertices[(i - 1) * 2 + 1], shape_params.vertices[(i - 1) * 2 + 2]))
+        end
+      end
+    elseif shape_type == 'edge' then
+      sensor = self.physics_node:CreateComponent("CollisionEdge2D")
+      sensor:SetVertex1(Vector2(shape_params.x1, shape_params.y1))
+      sensor:SetVertex2(Vector2(shape_params.x2, shape_params.y2))
+    end
+    if sensor then
+      sensor:SetTrigger(true)
+      local cat_bit = category_to_bit(trigger_data.category)
+      local trigger_mask = triggers_to_bits(trigger_data.triggers)
+      sensor:SetCategoryBits(cat_bit)
+      sensor:SetMaskBits(trigger_mask)
+      self.sensor_component = sensor
+    end
   end
 end
 
@@ -113,7 +142,7 @@ function Physics:set_as_rectangle(w, h, body_type, tag)
   -- SNKRX uses pixel coordinates; we pass them through as-is since our world is in pixel-space
   box:SetSize(w, h)
   box:SetCenter(0, 0)
-  self:_setup_collision_shape(box)
+  self:_setup_collision_shape(box, 'box', {w = w, h = h})
   return self
 end
 
@@ -126,7 +155,7 @@ function Physics:set_as_circle(rs, body_type, tag)
   local circle = self.physics_node:CreateComponent("CollisionCircle2D")
   circle:SetRadius(rs)
   circle:SetCenter(0, 0)
-  self:_setup_collision_shape(circle)
+  self:_setup_collision_shape(circle, 'circle', {r = rs})
   return self
 end
 
@@ -143,7 +172,7 @@ function Physics:set_as_polygon(vertices, body_type, tag)
   for i = 1, count do
     poly:SetVertex(i - 1, Vector2(vertices[(i - 1) * 2 + 1], vertices[(i - 1) * 2 + 2]))
   end
-  self:_setup_collision_shape(poly)
+  self:_setup_collision_shape(poly, 'polygon', {vertices = vertices})
   return self
 end
 
@@ -156,7 +185,7 @@ function Physics:set_as_line(x1, y1, x2, y2, body_type, tag)
   local edge = self.physics_node:CreateComponent("CollisionEdge2D")
   edge:SetVertex1(Vector2(x1, y1))
   edge:SetVertex2(Vector2(x2, y2))
-  self:_setup_collision_shape(edge)
+  self:_setup_collision_shape(edge, 'edge', {x1 = x1, y1 = y1, x2 = x2, y2 = y2})
   return self
 end
 
@@ -173,7 +202,7 @@ function Physics:set_as_chain(loop, vertices, body_type, tag)
   for i = 1, count do
     chain:SetVertex(i - 1, Vector2(vertices[(i - 1) * 2 + 1], vertices[(i - 1) * 2 + 2]))
   end
-  self:_setup_collision_shape(chain)
+  self:_setup_collision_shape(chain, 'chain', {loop = loop, vertices = vertices})
   return self
 end
 
@@ -191,7 +220,8 @@ function Physics:set_as_triangle(w, h, body_type, tag)
   poly:SetVertex(0, Vector2(x1, y1))
   poly:SetVertex(1, Vector2(x2, y2))
   poly:SetVertex(2, Vector2(x3, y3))
-  self:_setup_collision_shape(poly)
+  local tri_verts = {x1, y1, x2, y2, x3, y3}
+  self:_setup_collision_shape(poly, 'polygon', {vertices = tri_verts})
   return self
 end
 
@@ -204,10 +234,14 @@ function Physics:connect(other, direction)
   elseif direction == 'up' then d:set(0, -1)
   elseif direction == 'down' then d:set(0, 1) end
 
+  -- Get shape extents (support both rectangle w/h and circle rs)
+  local sw = self.shape.w or (self.shape.rs and self.shape.rs * 2) or 0
+  local sh = self.shape.h or (self.shape.rs and self.shape.rs * 2) or 0
+
   -- Create a UrhoX ConstraintRevolute2D
   local constraint = self.physics_node:CreateComponent("ConstraintRevolute2D")
   constraint:SetOtherBody(other.body)
-  constraint:SetAnchor(Vector2(self.x + 0.5 * d.x * self.shape.w, self.y + 0.5 * d.y * self.shape.h))
+  constraint:SetAnchor(Vector2(self.x + 0.5 * d.x * sw, self.y + 0.5 * d.y * sh))
   self.joints[direction] = constraint
   return self
 end
@@ -579,7 +613,11 @@ end
 
 function Physics:apply_force(fx, fy, x, y)
   if self.body then
-    self.body:ApplyForce(Vector2(fx, fy), Vector2(x or self.x, y or self.y), true)
+    if x and y then
+      self.body:ApplyForce(Vector2(fx, fy), Vector2(x, y), true)
+    else
+      self.body:ApplyForceToCenter(Vector2(fx, fy), true)
+    end
   end
   return self
 end

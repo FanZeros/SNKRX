@@ -77,6 +77,11 @@ function Start()
   SampleStart()
   Node = _GameNode
 
+  -- Create a scene for audio playback (SoundSource components require a scene)
+  -- SNKRX is a pure NanoVG 2D game, but UrhoX audio needs scene nodes.
+  scene_ = Scene()
+  scene_:CreateComponent("Octree")
+
   -- Create NanoVG context
   local nvg_ctx = nvgCreate(1)
   if nvg_ctx == nil then
@@ -135,6 +140,9 @@ function HandleUpdate(eventType, eventData)
 
   -- Update engine systems (time, input, camera)
   Engine.update(dt)
+
+  -- Reset touch zone steering each frame; Arena:update will re-enable if in active combat
+  if input then input.touch_zone_steering = false end
 
   -- Update global trigger (used for tweens/timers throughout the game)
   trigger:update(dt * slow_amount)
