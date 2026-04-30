@@ -22,16 +22,6 @@ function Font:init(asset_name, font_size)
     print(string.format("[Font] FALLBACK for '%s' -> MiSans, id=%d", asset_name, self.font_id))
   else
     print(string.format("[Font] Loaded '%s' from '%s', id=%d, size=%d", asset_name, font_path, self.font_id, font_size))
-    -- Add CJK fallback font (LXGW WenKai subset, no COLR tables)
-    local cjk_name = "__cjk_fallback"
-    local cjk_id = nvgFindFont(vg, cjk_name)
-    if cjk_id < 0 then
-      cjk_id = nvgCreateFont(vg, cjk_name, "fonts/CJKFallback.ttf")
-      print(string.format("[Font] CJK fallback font loaded, id=%d", cjk_id))
-    end
-    if cjk_id >= 0 then
-      nvgAddFallbackFontId(vg, self.font_id, cjk_id)
-    end
   end
   -- Approximate line height (NanoVG doesn't have a direct getHeight equivalent)
   -- We use font_size * 1.2 as a reasonable approximation

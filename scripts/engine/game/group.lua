@@ -415,61 +415,57 @@ function Group:_on_physics_begin_contact(eventData)
       end
     end
 
-    -- Fallback: use velocity-based wall normal for proper mirror reflection
-    if not got_contact then
+    -- For wall collisions (chain shapes), ALWAYS use axis-aligned normals
+    -- regardless of whether engine contact data was available.
+    -- Reason: Unit:bounce() uses axis-flip logic (checks nx==0 or ny==0),
+    -- so it requires pure axis-aligned normals like (1,0) or (0,1).
+    -- Engine contact normals can be arbitrary angles, breaking Unit:bounce().
+    local is_wall_collision = (oa.get_velocity and ob.vertices) or (ob.get_velocity and oa.vertices)
+
+    if is_wall_collision then
+      local mover = oa.get_velocity and oa or ob
+      local wall_obj = oa.get_velocity and ob or oa
+      if not got_contact then
+        cx = (oa.x + ob.x) * 0.5
+        cy = (oa.y + ob.y) * 0.5
+      end
+      -- Determine closest wall edge using mover position
+      if wall_obj.vertices and #wall_obj.vertices >= 8 then
+        local mx, my = mover.x, mover.y
+        local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
+        for vi = 1, #wall_obj.vertices, 2 do
+          local vx, vy = wall_obj.vertices[vi], wall_obj.vertices[vi+1]
+          if vx < minX then minX = vx end
+          if vx > maxX then maxX = vx end
+          if vy < minY then minY = vy end
+          if vy > maxY then maxY = vy end
+        end
+        local dLeft = math.abs(mx - minX)
+        local dRight = math.abs(mx - maxX)
+        local dTop = math.abs(my - minY)
+        local dBottom = math.abs(my - maxY)
+        local dMin = math.min(dLeft, dRight, dTop, dBottom)
+        if dMin == dLeft then
+          cnx, cny = -1, 0
+        elseif dMin == dRight then
+          cnx, cny = 1, 0
+        elseif dMin == dTop then
+          cnx, cny = 0, -1
+        else
+          cnx, cny = 0, 1
+        end
+      end
+    elseif not got_contact then
       if oa.x and oa.y and ob.x and ob.y then
         cx = (oa.x + ob.x) * 0.5
         cy = (oa.y + ob.y) * 0.5
-
-        -- For wall collisions (chain shapes), determine which wall edge was hit
-        -- by checking which arena boundary the moving object is closest to.
-        local use_velocity_fallback = false
-        if (oa.get_velocity and ob.vertices) or (ob.get_velocity and oa.vertices) then
-          -- One is a moving body, other is a wall (chain shape)
-          local mover = oa.get_velocity and oa or ob
-          local wall_obj = oa.get_velocity and ob or oa
-          -- Determine closest wall edge using mover position relative to arena center
-          -- Wall vertices form a rectangle; find which edge is nearest
-          if wall_obj.vertices and #wall_obj.vertices >= 8 then
-            -- Arena walls: find min distance to each edge
-            local mx, my = mover.x, mover.y
-            -- Extract bounding rect from chain vertices
-            local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
-            for vi = 1, #wall_obj.vertices, 2 do
-              local vx, vy = wall_obj.vertices[vi], wall_obj.vertices[vi+1]
-              if vx < minX then minX = vx end
-              if vx > maxX then maxX = vx end
-              if vy < minY then minY = vy end
-              if vy > maxY then maxY = vy end
-            end
-            -- Distance to each edge
-            local dLeft = math.abs(mx - minX)
-            local dRight = math.abs(mx - maxX)
-            local dTop = math.abs(my - minY)
-            local dBottom = math.abs(my - maxY)
-            local dMin = math.min(dLeft, dRight, dTop, dBottom)
-            if dMin == dLeft then
-              cnx, cny = -1, 0   -- wall is to the left, normal points left (into mover)
-            elseif dMin == dRight then
-              cnx, cny = 1, 0    -- wall is to the right
-            elseif dMin == dTop then
-              cnx, cny = 0, -1   -- wall is at top
-            else
-              cnx, cny = 0, 1    -- wall is at bottom
-            end
-            use_velocity_fallback = true
-          end
-        end
-
-        if not use_velocity_fallback then
-          -- Generic fallback: use position difference
-          local dx = ob.x - oa.x
-          local dy = ob.y - oa.y
-          local len = math.sqrt(dx * dx + dy * dy)
-          if len > 0.0001 then
-            cnx = dx / len
-            cny = dy / len
-          end
+        -- Generic fallback: use position difference
+        local dx = ob.x - oa.x
+        local dy = ob.y - oa.y
+        local len = math.sqrt(dx * dx + dy * dy)
+        if len > 0.0001 then
+          cnx = dx / len
+          cny = dy / len
         end
       end
     end

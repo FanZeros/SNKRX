@@ -13,7 +13,7 @@ function MainMenu:on_enter(from)
   trigger:tween(2, main_song_instance, {volume = 0.5, pitch = 1}, math.linear)
 
   steam.friends.setRichPresence('steam_display', '#StatusFull')
-  steam.friends.setRichPresence('text', '主菜单')
+  steam.friends.setRichPresence('text', 'Main Menu')
 
   self.floor = Group()
   self.main = Group():set_as_physics_world(32, 0, 0, {'player', 'enemy', 'projectile', 'enemy_projectile', 'force_field', 'ghost'})
@@ -83,7 +83,7 @@ function MainMenu:on_enter(from)
 
   self.title_text = Text({{text = '[wavy_mid, fg]SNKRX', font = fat_font, alignment = 'center'}}, global_text_tags)
 
-  self.arena_run_button = Button{group = self.main_ui, x = 55, y = gh/2 - 10, force_update = true, button_text = '竞技场', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+  self.arena_run_button = Button{group = self.main_ui, x = 55, y = gh/2 - 10, force_update = true, button_text = 'arena run', fg_color = 'bg10', bg_color = 'bg', action = function(b)
     ui_transition2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
     ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
     ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
@@ -108,29 +108,29 @@ function MainMenu:on_enter(from)
       system.save_state()
       main:add(BuyScreen'buy_screen')
       main:go_to('buy_screen', run.level or 1, run.loop or 0, run.units or {}, passives, run.shop_level or 1, run.shop_xp or 0)
-    end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']加载中...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
+    end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']starting...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
   end}
-  self.options_button = Button{group = self.main_ui, x = 47, y = gh/2 + 12, force_update = true, button_text = '设置', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+  self.options_button = Button{group = self.main_ui, x = 47, y = gh/2 + 12, force_update = true, button_text = 'options', fg_color = 'bg10', bg_color = 'bg', action = function(b)
     if not self.paused then
       open_options(self)
     else
       close_options(self)
     end
   end}
-  self.quit_button = Button{group = self.main_ui, x = 37, y = gh/2 + 34, force_update = true, button_text = '退出', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+  self.quit_button = Button{group = self.main_ui, x = 37, y = gh/2 + 34, force_update = true, button_text = 'quit', fg_color = 'bg10', bg_color = 'bg', action = function(b)
     system.save_state()
     steam.shutdown()
     love.event.quit()
   end}
   self.t:every(2, function() self.soundtrack_button.spring:pull(0.025, 200, 10) end)
-  self.soundtrack_button = Button{group = self.main_ui, x = gw - 72, y = gh - 40, force_update = true, button_text = '购买原声音乐!', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+  self.soundtrack_button = Button{group = self.main_ui, x = gw - 72, y = gh - 40, force_update = true, button_text = 'buy the soundtrack!', fg_color = 'bg10', bg_color = 'bg', action = function(b)
     ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
     b.spring:pull(0.2, 200, 10)
     b.selected = true
     ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
     system.open_url('https://kubbimusic.com/album/ember')
   end}
-  self.discord_button = Button{group = self.main_ui, x = gw - 92, y = gh - 17, force_update = true, button_text = '加入社区 Discord!', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+  self.discord_button = Button{group = self.main_ui, x = gw - 92, y = gh - 17, force_update = true, button_text = 'join the community discord!', fg_color = 'bg10', bg_color = 'bg', action = function(b)
     ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
     b.spring:pull(0.2, 200, 10)
     b.selected = true

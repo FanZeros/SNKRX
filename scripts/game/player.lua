@@ -1470,13 +1470,18 @@ function Player:on_collision_enter(other, contact)
       end
       self.hfx:use('hit', 0.5, 200, 10, 0.1)
       camera:spring_shake(2, math.pi - self.r)
-      self:bounce(contact:getNormal())
-      -- After bounce, sync self.r to the reflected velocity direction
-      -- so that the per-frame set_velocity(total_v*cos(self.r), ...) won't overwrite the bounce.
-      local bvx, bvy = self:get_velocity()
-      if math.abs(bvx) > 0.01 or math.abs(bvy) > 0.01 then
-        self.r = math.atan(bvy, bvx)
-      end
+      -- Mirror-reflect self.r using the wall normal.
+      -- We only modify self.r here (not Box2D velocity) because the per-frame
+      -- update at line ~1384 overwrites velocity from self.r every frame anyway.
+      -- Changing Box2D velocity directly would conflict with the engine's own
+      -- collision response (restitution=0.5) causing double-bounce cancellation.
+      local nx, ny = contact:getNormal()
+      local vx = math.cos(self.r)
+      local vy = math.sin(self.r)
+      local dot = vx * nx + vy * ny
+      local rvx = vx - 2 * dot * nx
+      local rvy = vy - 2 * dot * ny
+      self.r = math.atan(rvy, rvx)
       local r = random:float(0.9, 1.1)
       player_hit_wall1:play{pitch = r, volume = 0.1}
       pop1:play{pitch = r, volume = 0.2}
