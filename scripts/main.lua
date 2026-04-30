@@ -145,7 +145,7 @@ function HandleUpdate(eventType, eventData)
   if input then input.touch_zone_steering = false end
 
   -- Update global trigger (used for tweens/timers throughout the game)
-  trigger:update(dt * slow_amount)
+  trigger:update(dt)
 
   -- Update mouse position (in design resolution coordinates)
   local dpr = urho_graphics:GetDPR()
