@@ -138,10 +138,13 @@ function Input:poll_urho()
   -- Only active during gameplay (touch_zone_steering flag set by game code).
   if self.touch_zone_steering and self.mouse_state.m1 and not urho_input:GetMouseButtonDown(MOUSEB_RIGHT) then
     -- Only remap when it's a pure left-click (not actual right-click)
+    -- Convert physical mouse position to logical pixels, then check against
+    -- the game area center (accounting for letterbox offset)
     local dpr = urho_graphics:GetDPR()
-    local screen_w = urho_graphics:GetWidth() / dpr
     local mx = urho_input.mousePosition.x / dpr
-    if mx >= screen_w / 2 then
+    local ox = screen_ox or 0
+    local game_center_x = ox + (gw * sx) / 2
+    if mx >= game_center_x then
       -- Right half of screen: remap m1 → m2
       self.mouse_state.m1 = false
       self.mouse_state.m2 = true

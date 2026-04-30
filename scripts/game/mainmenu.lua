@@ -81,9 +81,9 @@ function MainMenu:on_enter(from)
     end
   end
 
-  self.title_text = Text({{text = '[wavy_mid, fg]SNKRX', font = fat_font, alignment = 'center'}}, global_text_tags)
+  self.title_text = Text({{text = '[wavy_mid, fg]蛇蛇小队', font = fat_font, alignment = 'center'}}, global_text_tags)
 
-  self.arena_run_button = Button{group = self.main_ui, x = 55, y = gh/2 - 10, force_update = true, button_text = 'arena run', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+  self.arena_run_button = Button{group = self.main_ui, x = 55, y = gh/2 - 10, force_update = true, button_text = '开始游戏', fg_color = 'bg10', bg_color = 'bg', action = function(b)
     ui_transition2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
     ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
     ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
@@ -108,21 +108,15 @@ function MainMenu:on_enter(from)
       system.save_state()
       main:add(BuyScreen'buy_screen')
       main:go_to('buy_screen', run.level or 1, run.loop or 0, run.units or {}, passives, run.shop_level or 1, run.shop_xp or 0)
-    end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']starting...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
+    end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']加载中...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
   end}
-  self.options_button = Button{group = self.main_ui, x = 47, y = gh/2 + 12, force_update = true, button_text = 'options', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+  self.options_button = Button{group = self.main_ui, x = 47, y = gh/2 + 12, force_update = true, button_text = '设置', fg_color = 'bg10', bg_color = 'bg', action = function(b)
     if not self.paused then
       open_options(self)
     else
       close_options(self)
     end
   end}
-  self.quit_button = Button{group = self.main_ui, x = 37, y = gh/2 + 34, force_update = true, button_text = 'quit', fg_color = 'bg10', bg_color = 'bg', action = function(b)
-    system.save_state()
-    steam.shutdown()
-    love.event.quit()
-  end}
-
 end
 
 

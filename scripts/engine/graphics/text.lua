@@ -143,8 +143,19 @@ function Text:parse(text_data)
   for _, line in ipairs(text_data) do
     line.characters = {}
     local current_tags = nil
-    for i = 1, #line.text do
-      local c = line.text:sub(i, i)
+    -- UTF-8 aware character iteration
+    local i = 1
+    local text = line.text
+    local len = #text
+    while i <= len do
+      -- Determine UTF-8 character byte length from leading byte
+      local byte = text:byte(i)
+      local char_len = 1
+      if byte >= 0xF0 then char_len = 4
+      elseif byte >= 0xE0 then char_len = 3
+      elseif byte >= 0xC0 then char_len = 2
+      end
+      local c = text:sub(i, i + char_len - 1)
       local inside_tags = false
       for _, tag in ipairs(line.tags) do
         if i >= tag.i and i <= tag.j then
@@ -156,6 +167,7 @@ function Text:parse(text_data)
       if not inside_tags then
         table.insert(line.characters, {character = c, visible = true, tags = current_tags or {}})
       end
+      i = i + char_len
     end
   end
 

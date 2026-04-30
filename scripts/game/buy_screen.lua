@@ -66,14 +66,14 @@ function BuyScreen:on_enter(from, level, loop, units, passives, shop_level, shop
   self:set_party_and_sets()
   self:set_items()
 
-  self.shop_text = Text({{text = '[wavy_mid, fg]shop [fg]- gold: [yellow]' .. gold, font = pixul_font, alignment = 'center'}}, global_text_tags)
-  self.party_text = Text({{text = '[wavy_mid, fg]party ' .. tostring(#units) .. '/' .. tostring(max_units), font = pixul_font, alignment = 'center'}}, global_text_tags)
-  self.sets_text = Text({{text = '[wavy_mid, fg]classes', font = pixul_font, alignment = 'center'}}, global_text_tags)
-  self.items_text = Text({{text = '[wavy_mid, fg]items', font = pixul_font, alignment = 'center'}}, global_text_tags)
+  self.shop_text = Text({{text = '[wavy_mid, fg]商店 [fg]- 金币: [yellow]' .. gold, font = pixul_font, alignment = 'center'}}, global_text_tags)
+  self.party_text = Text({{text = '[wavy_mid, fg]队伍 ' .. tostring(#units) .. '/' .. tostring(max_units), font = pixul_font, alignment = 'center'}}, global_text_tags)
+  self.sets_text = Text({{text = '[wavy_mid, fg]职业', font = pixul_font, alignment = 'center'}}, global_text_tags)
+  self.items_text = Text({{text = '[wavy_mid, fg]道具', font = pixul_font, alignment = 'center'}}, global_text_tags)
   self.ng_text = Text({{text = '[fg]NG+' .. current_new_game_plus, font = pixul_font, alignment = 'center'}}, global_text_tags)
   local get_elite_str = function(lvl)
-    if (lvl-(25*self.loop)) % 6 == 0 or lvl % 25 == 0 then return ' (elite)'
-    elseif (lvl-(25*self.loop)) % 3 == 0 then return ' (hard)'
+    if (lvl-(25*self.loop)) % 6 == 0 or lvl % 25 == 0 then return ' (精英)'
+    elseif (lvl-(25*self.loop)) % 3 == 0 then return ' (困难)'
     else return '' end
   end
   self.level_text = Text({{text = '[fg]Lv.' .. tostring(self.level) .. get_elite_str(self.level), font = pixul_font, alignment = 'center'}}, global_text_tags)
@@ -83,17 +83,17 @@ function BuyScreen:on_enter(from, level, loop, units, passives, shop_level, shop
   LevelButton{group = self.main, x = gw/2, y = 18, parent = self}
   self.tutorial_button = Button{group = self.main, x = gw/2 + 129, y = 18, button_text = '?', fg_color = 'bg10', bg_color = 'bg', action = function()
     self.in_tutorial = true
-    self.title_text = Text2{group = self.tutorial, x = gw/2, y = 35, lines = {{text = '[fg]WELCOME TO SNKRX!', font = fat_font, alignment = 'center'}}}
+    self.title_text = Text2{group = self.tutorial, x = gw/2, y = 35, lines = {{text = '[fg]欢迎来到蛇蛇小队!', font = fat_font, alignment = 'center'}}}
     self.tutorial_text = Text2{group = self.tutorial, x = 228, y = 160, lines = {
-      {text = '[fg]You control a snake of multiple heroes that auto-attack nearby enemies.', font = pixul_font, height_multiplier = 1.2},
-      {text = '[fg]You can steer the snake left or right by pressing [yellow]A/D[fg] or [yellow]left/right arrows[fg].', font = pixul_font, height_multiplier = 2.2},
-      {text = '[fg]Combine the same heroes to level them up:', font = pixul_font, height_multiplier = 1.2},
-      {text = '[fg]At [yellow]Lv.3[fg] heroes unlock special effects.', font = pixul_font, height_multiplier = 2.2},
-      {text = '[fg]Hire heroes of the same classes to unlock class passives:', font = pixul_font, height_multiplier = 1.2},
-      {text = '[fg]Each hero can have between [yellow]1 to 3[fg] classes.', font = pixul_font, height_multiplier = 2.2},
-      {text = '[fg]You gain [yellow]1 interest per 5 gold[fg], up to a maximum of 5.', font = pixul_font, height_multiplier = 1.2},
-      {text = "[fg]This means that saving above [yellow]25 gold[fg] doesn't yield more interest.", font = pixul_font, height_multiplier = 2.2},
-      {text = "[yellow, wavy_mid]Good luck!", font = pixul_font, height_multiplier = 2.2, alignment = 'center'},
+      {text = '[fg]你控制一条由多个英雄组成的蛇，它们会自动攻击附近的敌人。', font = pixul_font, height_multiplier = 1.2},
+      {text = '[fg]点击屏幕左侧或右侧来控制蛇左转或右转。', font = pixul_font, height_multiplier = 2.2},
+      {text = '[fg]合成相同英雄来升级:', font = pixul_font, height_multiplier = 1.2},
+      {text = '[fg]在[yellow]Lv.3[fg]时英雄解锁特殊效果。', font = pixul_font, height_multiplier = 2.2},
+      {text = '[fg]招募相同职业的英雄来解锁职业被动:', font = pixul_font, height_multiplier = 1.2},
+      {text = '[fg]每个英雄可以有[yellow]1到3[fg]个职业。', font = pixul_font, height_multiplier = 2.2},
+      {text = '[fg]每[yellow]5金币产生1利息[fg]，最多5利息。', font = pixul_font, height_multiplier = 1.2},
+      {text = "[fg]这意味着存储超过[yellow]25金币[fg]不会产生更多利息。", font = pixul_font, height_multiplier = 2.2},
+      {text = "[yellow, wavy_mid]祝你好运!", font = pixul_font, height_multiplier = 2.2, alignment = 'center'},
     }}
 
     self.tutorial_cards = {}
@@ -119,7 +119,7 @@ function BuyScreen:on_enter(from, level, loop, units, passives, shop_level, shop
   end, mouse_enter = function(b)
     b.info_text = InfoText{group = main.current.ui, force_update = true}
     b.info_text:activate({
-      {text = '[fg]guide', font = pixul_font, alignment = 'center'},
+      {text = '[fg]指南', font = pixul_font, alignment = 'center'},
     }, nil, nil, nil, nil, 16, 4, nil, 2)
     b.info_text.x, b.info_text.y = b.x, b.y + 20
   end, mouse_exit = function(b)
@@ -155,11 +155,11 @@ function BuyScreen:on_enter(from, level, loop, units, passives, shop_level, shop
       main:add(BuyScreen'buy_screen')
       system.save_run()
       main:go_to('buy_screen', 1, 0, {}, passives, 1, 0)
-    end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']restarting...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
+    end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']重新开始...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
   end, mouse_enter = function(b)
     b.info_text = InfoText{group = main.current.ui, force_update = true}
     b.info_text:activate({
-      {text = '[fg]restart run', font = pixul_font, alignment = 'center'},
+      {text = '[fg]重新开始', font = pixul_font, alignment = 'center'},
     }, nil, nil, nil, nil, 16, 4, nil, 2)
     b.info_text.x, b.info_text.y = b.x, b.y + 20
   end, mouse_exit = function(b)
@@ -276,14 +276,14 @@ function BuyScreen:buy(character, i)
       if not self.info_text then
         self.info_text = InfoText{group = main.current.ui}
         self.info_text:activate({
-          {text = "[fg]this unit has already reached max level", font = pixul_font, alignment = 'center'},
+          {text = "[fg]该单位已达到最高等级", font = pixul_font, alignment = 'center'},
         }, nil, nil, nil, nil, 16, 4, nil, 2)
         self.info_text.x, self.info_text.y = gw - 140, gh - 20
       end
       self.t:after(2, function() self.info_text:deactivate(); self.info_text.dead = true; self.info_text = nil end, 'info_text')
     else
       gold = gold - character_tiers[character]
-      self.shop_text:set_text{{text = '[wavy_mid, fg]shop [fg]- [fg, nudge_down]gold: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
+      self.shop_text:set_text{{text = '[wavy_mid, fg]商店 [fg]- [fg, nudge_down]金币: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
       for _, unit in ipairs(self.units) do
         if unit.character == character then
           if unit.level == 1 then
@@ -316,7 +316,7 @@ function BuyScreen:buy(character, i)
       if not self.info_text then
         self.info_text = InfoText{group = main.current.ui}
         self.info_text:activate({
-          {text = '[fg]maximum number of units [yellow](' .. max_units .. ') [fg]reached', font = pixul_font, alignment = 'center'},
+          {text = '[fg]单位数量已达上限 [yellow](' .. max_units .. ')[fg]', font = pixul_font, alignment = 'center'},
         }, nil, nil, nil, nil, 16, 4, nil, 2)
         self.info_text.x, self.info_text.y = gw - 140, gh - 20
       end
@@ -324,7 +324,7 @@ function BuyScreen:buy(character, i)
     else
       if gold >= character_tiers[character] then
         gold = gold - character_tiers[character]
-        self.shop_text:set_text{{text = '[wavy_mid, fg]shop [fg]- [fg, nudge_down]gold: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
+        self.shop_text:set_text{{text = '[wavy_mid, fg]商店 [fg]- [fg, nudge_down]金币: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
         table.insert(self.units, {character = character, level = 1, reserve = {0, 0}})
         bought = true
       end
@@ -337,7 +337,7 @@ end
 
 function BuyScreen:gain_gold(amount)
   gold = gold + amount or 0
-  self.shop_text:set_text{{text = '[wavy_mid, fg]shop [fg]- [fg, nudge_down]gold: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
+  self.shop_text:set_text{{text = '[wavy_mid, fg]商店 [fg]- [fg, nudge_down]金币: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
 end
 
 
@@ -407,8 +407,8 @@ SteamFollowButton:implement(GameObject)
 function SteamFollowButton:init(args)
   self:init_game_object(args)
   self.interact_with_mouse = true
-  self.shape = Rectangle(self.x, self.y, pixul_font:get_text_width('follow me on steam!') + 12, pixul_font.h + 4)
-  self.text = Text({{text = '[greenm5]follow me on steam!', font = pixul_font, alignment = 'center'}}, global_text_tags)
+  self.shape = Rectangle(self.x, self.y, pixul_font:get_text_width('在Steam关注我!') + 12, pixul_font.h + 4)
+  self.text = Text({{text = '[greenm5]在Steam关注我!', font = pixul_font, alignment = 'center'}}, global_text_tags)
 end
 
 
@@ -443,7 +443,7 @@ function SteamFollowButton:on_mouse_enter()
   ui_hover1:play{pitch = random:float(1.3, 1.5), volume = 0.5}
   pop2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
   self.selected = true
-  self.text:set_text{{text = '[fgm5]follow me on steam!', font = pixul_font, alignment = 'center'}}
+  self.text:set_text{{text = '[fgm5]在Steam关注我!', font = pixul_font, alignment = 'center'}}
   self.spring:pull(0.05, 200, 10)
 end
 
@@ -451,7 +451,7 @@ end
 function SteamFollowButton:on_mouse_exit()
   if main.current.in_credits then return end
   love.mouse.setCursor()
-  self.text:set_text{{text = '[greenm5]follow me on steam!', font = pixul_font, alignment = 'center'}}
+  self.text:set_text{{text = '[greenm5]在Steam关注我!', font = pixul_font, alignment = 'center'}}
   self.selected = false
 end
 
@@ -465,10 +465,10 @@ function WishlistButton:init(args)
   self.interact_with_mouse = true
   if self.w_to_wishlist then
     self.shape = Rectangle(self.x, self.y, 85, 18)
-    self.text = Text({{text = '[bg10]w to wishlist', font = pixul_font, alignment = 'center'}}, global_text_tags)
+    self.text = Text({{text = '[bg10]W键愿望单', font = pixul_font, alignment = 'center'}}, global_text_tags)
   else
     self.shape = Rectangle(self.x, self.y, 110, 18)
-    self.text = Text({{text = '[bg10]wishlist on steam', font = pixul_font, alignment = 'center'}}, global_text_tags)
+    self.text = Text({{text = '[bg10]Steam愿望单', font = pixul_font, alignment = 'center'}}, global_text_tags)
   end
 end
 
@@ -499,9 +499,9 @@ function WishlistButton:on_mouse_enter()
   pop2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
   self.selected = true
   if self.w_to_wishlist then
-    self.text:set_text{{text = '[fgm5]w to wishlist', font = pixul_font, alignment = 'center'}}
+    self.text:set_text{{text = '[fgm5]W键愿望单', font = pixul_font, alignment = 'center'}}
   else
-    self.text:set_text{{text = '[fgm5]wishlist on steam', font = pixul_font, alignment = 'center'}}
+    self.text:set_text{{text = '[fgm5]Steam愿望单', font = pixul_font, alignment = 'center'}}
   end
   self.spring:pull(0.2, 200, 10)
 end
@@ -509,9 +509,9 @@ end
 
 function WishlistButton:on_mouse_exit()
   if self.w_to_wishlist then
-    self.text:set_text{{text = '[bg10]w to wishlist', font = pixul_font, alignment = 'center'}}
+    self.text:set_text{{text = '[bg10]W键愿望单', font = pixul_font, alignment = 'center'}}
   else
-    self.text:set_text{{text = '[bg10]wishlist on steam', font = pixul_font, alignment = 'center'}}
+    self.text:set_text{{text = '[bg10]Steam愿望单', font = pixul_font, alignment = 'center'}}
   end
   self.selected = false
 end
@@ -559,7 +559,7 @@ function RestartButton:update(dt)
       main:add(BuyScreen'buy_screen')
       system.save_run()
       main:go_to('buy_screen', 1, 0, {}, passives, 1, 0)
-    end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']restarting...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
+    end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']重新开始...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
   end
 end
 
@@ -704,7 +704,7 @@ function GoButton:update(dt)
         error1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
         self.info_text = InfoText{group = main.current.ui}
         self.info_text:activate({
-          {text = '[fg]cannot start the round with [yellow]0 [fg]units', font = pixul_font, alignment = 'center'},
+          {text = '[fg]不能以[yellow]0[fg]个单位开始战斗', font = pixul_font, alignment = 'center'},
         }, nil, nil, nil, nil, 16, 4, nil, 2)
         self.info_text.x, self.info_text.y = gw/2, gh/2 + 10
       end
@@ -722,7 +722,7 @@ function GoButton:update(dt)
       TransitionEffect{group = main.transitions, x = self.x, y = self.y, color = state.dark_transitions and bg[-2] or character_colors[random:table(self.parent.units).character], transition_action = function()
         main:add(Arena'arena')
         main:go_to('arena', self.parent.level, self.parent.loop, self.parent.units, self.parent.passives, self.parent.shop_level, self.parent.shop_xp, self.parent.locked)
-      end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']level ' .. tostring(self.parent.level) .. '/' .. tostring(25*(self.parent.loop+1)), font = pixul_font, alignment = 'center'}}, global_text_tags)}
+      end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']关卡 ' .. tostring(self.parent.level) .. '/' .. tostring(25*(self.parent.loop+1)), font = pixul_font, alignment = 'center'}}, global_text_tags)}
     end
 
     if input.enter.pressed then self.selected = false end
@@ -761,8 +761,8 @@ function LockButton:init(args)
   self.interact_with_mouse = true
   if self.parent.locked then self.shape.w = 44
   else self.shape.w = 32 end
-  if self.parent.locked then self.text = Text({{text = '[fgm5]' .. tostring(self.parent.locked and 'unlock' or 'lock'), font = pixul_font, alignment = 'center'}}, global_text_tags)
-  else self.text = Text({{text = '[bg10]' .. tostring(self.parent.locked and 'unlock' or 'lock'), font = pixul_font, alignment = 'center'}}, global_text_tags) end
+  if self.parent.locked then self.text = Text({{text = '[fgm5]' .. tostring(self.parent.locked and '解锁' or '锁定'), font = pixul_font, alignment = 'center'}}, global_text_tags)
+  else self.text = Text({{text = '[bg10]' .. tostring(self.parent.locked and '解锁' or '锁定'), font = pixul_font, alignment = 'center'}}, global_text_tags) end
 end
 
 
@@ -779,7 +779,7 @@ function LockButton:update(dt)
     ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
     self.selected = true
     self.spring:pull(0.2, 200, 10)
-    self.text:set_text{{text = '[fgm5]' .. tostring(self.parent.locked and 'unlock' or 'lock'), font = pixul_font, alignment = 'center'}}
+    self.text:set_text{{text = '[fgm5]' .. tostring(self.parent.locked and '解锁' or '锁定'), font = pixul_font, alignment = 'center'}}
     if self.parent.locked then self.shape.w = 44
     else self.shape.w = 32 end
   end
@@ -798,13 +798,13 @@ function LockButton:on_mouse_enter()
   ui_hover1:play{pitch = random:float(1.3, 1.5), volume = 0.5}
   pop2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
   self.selected = true
-  self.text:set_text{{text = '[fgm5]' .. tostring(self.parent.locked and 'unlock' or 'lock'), font = pixul_font, alignment = 'center'}}
+  self.text:set_text{{text = '[fgm5]' .. tostring(self.parent.locked and '解锁' or '锁定'), font = pixul_font, alignment = 'center'}}
   self.spring:pull(0.2, 200, 10)
 end
 
 
 function LockButton:on_mouse_exit()
-  if not self.parent.locked then self.text:set_text{{text = '[bg10]' .. tostring(self.parent.locked and 'unlock' or 'lock'), font = pixul_font, alignment = 'center'}} end
+  if not self.parent.locked then self.text:set_text{{text = '[bg10]' .. tostring(self.parent.locked and '解锁' or '锁定'), font = pixul_font, alignment = 'center'}} end
   self.selected = false
 end
 
@@ -835,7 +835,7 @@ function LevelButton:update(dt)
       if not self.info_text_2 then
         self.info_text_2 = InfoText{group = main.current.ui}
         self.info_text_2:activate({
-          {text = '[fg]not enough gold', font = pixul_font, alignment = 'center'},
+          {text = '[fg]金币不足', font = pixul_font, alignment = 'center'},
         }, nil, nil, nil, nil, 16, 4, nil, 2)
         self.info_text_2.x, self.info_text_2.y = gw/2, gh/2 + 30
       end
@@ -853,7 +853,7 @@ function LevelButton:update(dt)
       self.selected = true
       self.spring:pull(0.2, 200, 10)
       gold = gold - 5
-      self.parent.shop_text:set_text{{text = '[wavy_mid, fg]shop [fg]- [fg, nudge_down]gold: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
+      self.parent.shop_text:set_text{{text = '[wavy_mid, fg]商店 [fg]- [fg, nudge_down]金币: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
       self.text = Text({{text = '[bg10]' .. tostring(self.parent.shop_level), font = pixul_font, alignment = 'center'}}, global_text_tags)
       system.save_run(self.parent.level, self.parent.loop, gold, self.parent.units, self.parent.passives, self.parent.shop_level, self.parent.shop_xp, run_passive_pool, locked_state)
     end
@@ -868,7 +868,7 @@ function LevelButton:update(dt)
       if not self.info_text_2 then
         self.info_text_2 = InfoText{group = main.current.ui}
         self.info_text_2:activate({
-          {text = '[fg]not enough gold', font = pixul_font, alignment = 'center'},
+          {text = '[fg]金币不足', font = pixul_font, alignment = 'center'},
         }, nil, nil, nil, nil, 16, 4, nil, 2)
         self.info_text_2.x, self.info_text_2.y = gw/2, gh/2 + 30
       end
@@ -883,7 +883,7 @@ function LevelButton:update(dt)
       self.selected = true
       self.spring:pull(0.2, 200, 10)
       gold = gold - 10
-      self.parent.shop_text:set_text{{text = '[wavy_mid, fg]shop [fg]- [fg, nudge_down]gold: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
+      self.parent.shop_text:set_text{{text = '[wavy_mid, fg]商店 [fg]- [fg, nudge_down]金币: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
       self.text = Text({{text = '[bg10]' .. tostring(self.parent.shop_level), font = pixul_font, alignment = 'center'}}, global_text_tags)
       system.save_run(self.parent.level, self.parent.loop, gold, self.parent.units, self.parent.passives, self.parent.shop_level, self.parent.shop_xp, run_passive_pool, locked_state)
     end
@@ -918,13 +918,13 @@ function LevelButton:create_info_text()
     local t41, t42 = get_shop_odds(self.parent.shop_level, 4), get_shop_odds(self.parent.shop_level+1, 4)
     self.info_text = InfoText{group = main.current.ui}
     self.info_text:activate({
-      {text = '[yellow]Lv.' .. self.parent.shop_level .. '[fg] shop, XP: [yellow]' .. self.shop_xp .. '/' .. self.max_xp .. '[fg], +1 XP cost: [yellow]5', font = pixul_font, alignment = 'center', height_multiplier = 1.5},
-      {text = '[bg10]chances of units appearing on the shop', font = pixul_font, alignment = 'center', height_multiplier = 1.25},
-      {text = '[yellow]current shop level                  [fgm10]next shop level', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
-      {text = '[fg]tier 1: ' .. t11 .. '%' .. tostring(t11 < 10 and '  ' or '') .. '                                 [fgm8]tier 1: ' .. t12 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
-      {text = '[green]tier 2: ' .. t21 .. '%' .. tostring(t21 < 10 and '  ' or '') .. '                                 [fgm6]tier 2: ' .. t22 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
-      {text = '[blue]tier 3: ' .. t31 .. '%' .. tostring(t31 < 10 and '  ' or '') .. '                                 [fgm4]tier 3: ' .. t32 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
-      {text = '[purple]tier 4: ' .. t41 .. '%' .. tostring(t41 < 10 and '  ' or '') .. '                                 [fgm2]tier 4: ' .. t42 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
+      {text = '[yellow]Lv.' .. self.parent.shop_level .. '[fg] 商店, 经验: [yellow]' .. self.shop_xp .. '/' .. self.max_xp .. '[fg], +1经验花费: [yellow]5', font = pixul_font, alignment = 'center', height_multiplier = 1.5},
+      {text = '[bg10]商店中单位出现概率', font = pixul_font, alignment = 'center', height_multiplier = 1.25},
+      {text = '[yellow]当前商店等级                  [fgm10]下一商店等级', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
+      {text = '[fg]阶级1: ' .. t11 .. '%' .. tostring(t11 < 10 and '  ' or '') .. '                                 [fgm8]阶级1: ' .. t12 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
+      {text = '[green]阶级2: ' .. t21 .. '%' .. tostring(t21 < 10 and '  ' or '') .. '                                 [fgm6]阶级2: ' .. t22 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
+      {text = '[blue]阶级3: ' .. t31 .. '%' .. tostring(t31 < 10 and '  ' or '') .. '                                 [fgm4]阶级3: ' .. t32 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
+      {text = '[purple]阶级4: ' .. t41 .. '%' .. tostring(t41 < 10 and '  ' or '') .. '                                 [fgm2]阶级4: ' .. t42 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
     }, nil, nil, nil, nil, 16, 4, nil, 2)
     self.info_text.x, self.info_text.y = gw/2, gh/2 - 45
   elseif self.parent.shop_level == 5 then
@@ -934,13 +934,13 @@ function LevelButton:create_info_text()
     local t41 = get_shop_odds(self.parent.shop_level, 4)
     self.info_text = InfoText{group = main.current.ui}
     self.info_text:activate({
-      {text = '[yellow]Lv.' .. self.parent.shop_level .. '[fg] shop', font = pixul_font, alignment = 'center', height_multiplier = 1.5},
-      {text = '[bg10]chances of units appearing on the shop', font = pixul_font, alignment = 'center', height_multiplier = 1.25},
-      {text = '[yellow]current shop level', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
-      {text = '[fg]tier 1: ' .. t11 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
-      {text = '[green]tier 2: ' .. t21 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
-      {text = '[blue]tier 3: ' .. t31 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
-      {text = '[purple]tier 4: ' .. t41 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
+      {text = '[yellow]Lv.' .. self.parent.shop_level .. '[fg] 商店', font = pixul_font, alignment = 'center', height_multiplier = 1.5},
+      {text = '[bg10]商店中单位出现概率', font = pixul_font, alignment = 'center', height_multiplier = 1.25},
+      {text = '[yellow]当前商店等级', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
+      {text = '[fg]阶级1: ' .. t11 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
+      {text = '[green]阶级2: ' .. t21 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
+      {text = '[blue]阶级3: ' .. t31 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
+      {text = '[purple]阶级4: ' .. t41 .. '%', font = pixul_font, alignment = 'left', height_multiplier = 1.25},
     }, nil, nil, nil, nil, 16, 4, nil, 2)
     self.info_text.x, self.info_text.y = gw/2, gh/2 - 45
   end
@@ -977,7 +977,7 @@ function RerollButton:init(args)
   self.interact_with_mouse = true
   if self.parent:is(BuyScreen) then
     self.shape = Rectangle(self.x, self.y, 54, 16)
-    self.text = Text({{text = '[bg10]reroll: [yellow]2', font = pixul_font, alignment = 'center'}}, global_text_tags)
+    self.text = Text({{text = '[bg10]刷新: [yellow]2', font = pixul_font, alignment = 'center'}}, global_text_tags)
   elseif self.parent:is(Arena) then
     self.shape = Rectangle(self.x, self.y, 60, 16)
     local merchant
@@ -989,9 +989,9 @@ function RerollButton:init(args)
     end
     if self.parent.level == 3 or (merchant and merchant.level == 3) then
       self.free_reroll = true
-      self.text = Text({{text = '[bg10]reroll: [yellow]0', font = pixul_font, alignment = 'center'}}, global_text_tags)
+      self.text = Text({{text = '[bg10]刷新: [yellow]0', font = pixul_font, alignment = 'center'}}, global_text_tags)
     else
-      self.text = Text({{text = '[bg10]reroll: [yellow]5', font = pixul_font, alignment = 'center'}}, global_text_tags)
+      self.text = Text({{text = '[bg10]刷新: [yellow]5', font = pixul_font, alignment = 'center'}}, global_text_tags)
     end
   end
 end
@@ -1009,7 +1009,7 @@ function RerollButton:update(dt)
         if not self.info_text then
           self.info_text = InfoText{group = main.current.ui}
           self.info_text:activate({
-            {text = '[fg]not enough gold', font = pixul_font, alignment = 'center'},
+            {text = '[fg]金币不足', font = pixul_font, alignment = 'center'},
           }, nil, nil, nil, nil, 16, 4, nil, 2)
           self.info_text.x, self.info_text.y = gw/2, gh/2 + 10
         end
@@ -1020,7 +1020,7 @@ function RerollButton:update(dt)
         self.selected = true
         self.spring:pull(0.2, 200, 10)
         gold = gold - 2
-        self.parent.shop_text:set_text{{text = '[wavy_mid, fg]shop [fg]- [fg, nudge_down]gold: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
+        self.parent.shop_text:set_text{{text = '[wavy_mid, fg]商店 [fg]- [fg, nudge_down]金币: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
         system.save_run(self.parent.level, self.parent.loop, gold, self.parent.units, self.parent.passives, self.parent.shop_level, self.parent.shop_xp, run_passive_pool, locked_state)
       end
     elseif self.parent:is(Arena) then
@@ -1031,7 +1031,7 @@ function RerollButton:update(dt)
         if not self.info_text then
           self.info_text = InfoText{group = main.current.ui, force_update = true}
           self.info_text:activate({
-            {text = '[fg]not enough gold', font = pixul_font, alignment = 'center'},
+            {text = '[fg]金币不足', font = pixul_font, alignment = 'center'},
           }, nil, nil, nil, nil, 16, 4, nil, 2)
           self.info_text.x, self.info_text.y = gw/2, gh/2 + 10
         end
@@ -1042,9 +1042,9 @@ function RerollButton:update(dt)
         self.selected = true
         self.spring:pull(0.2, 200, 10)
         if not self.free_reroll then gold = gold - 5 end
-        self.parent.shop_text:set_text{{text = '[fg, nudge_down]gold: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
+        self.parent.shop_text:set_text{{text = '[fg, nudge_down]金币: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
         self.free_reroll = false
-        self.text = Text({{text = '[bg10]reroll: [yellow]5', font = pixul_font, alignment = 'center'}}, global_text_tags)
+        self.text = Text({{text = '[bg10]刷新: [yellow]5', font = pixul_font, alignment = 'center'}}, global_text_tags)
       end
     end
 
@@ -1070,12 +1070,12 @@ function RerollButton:on_mouse_enter()
   pop2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
   self.selected = true
   if self.parent:is(BuyScreen) then
-    self.text:set_text{{text = '[fgm5]reroll: 2', font = pixul_font, alignment = 'center'}}
+    self.text:set_text{{text = '[fgm5]刷新: 2', font = pixul_font, alignment = 'center'}}
   elseif self.parent:is(Arena) then
     if self.free_reroll then
-      self.text:set_text{{text = '[fgm5]reroll: 0', font = pixul_font, alignment = 'center'}}
+      self.text:set_text{{text = '[fgm5]刷新: 0', font = pixul_font, alignment = 'center'}}
     else
-      self.text:set_text{{text = '[fgm5]reroll: 5', font = pixul_font, alignment = 'center'}}
+      self.text:set_text{{text = '[fgm5]刷新: 5', font = pixul_font, alignment = 'center'}}
     end
   end
   self.spring:pull(0.2, 200, 10)
@@ -1084,12 +1084,12 @@ end
 
 function RerollButton:on_mouse_exit()
   if self.parent:is(BuyScreen) then
-    self.text:set_text{{text = '[bg10]reroll: [yellow]2', font = pixul_font, alignment = 'center'}}
+    self.text:set_text{{text = '[bg10]刷新: [yellow]2', font = pixul_font, alignment = 'center'}}
   elseif self.parent:is(Arena) then
     if self.free_reroll then
-      self.text:set_text{{text = '[fgm5]reroll: [yellow]0', font = pixul_font, alignment = 'center'}}
+      self.text:set_text{{text = '[fgm5]刷新: [yellow]0', font = pixul_font, alignment = 'center'}}
     else
-      self.text:set_text{{text = '[fgm5]reroll: [yellow]5', font = pixul_font, alignment = 'center'}}
+      self.text:set_text{{text = '[fgm5]刷新: [yellow]5', font = pixul_font, alignment = 'center'}}
     end
   end
   self.selected = false
@@ -1127,11 +1127,11 @@ function TutorialCharacterPart:on_mouse_enter()
   self.spring:pull(0.2, 200, 10)
   self.info_text = InfoText{group = main.current.tutorial}
   self.info_text:activate({
-    {text = '[' .. character_color_strings[self.character] .. ']' .. self.character:capitalize() .. '[fg] - [yellow]Lv.' .. self.level,
+    {text = '[' .. character_color_strings[self.character] .. ']' .. (character_names[self.character] or self.character:capitalize()) .. '[fg] - [yellow]Lv.' .. self.level,
     font = pixul_font, alignment = 'center', height_multiplier = 1.25},
-    {text = '[fg]Classes: ' .. character_class_strings[self.character], font = pixul_font, alignment = 'center', height_multiplier = 1.25},
+    {text = '[fg]职业: ' .. character_class_strings[self.character], font = pixul_font, alignment = 'center', height_multiplier = 1.25},
     {text = character_descriptions[self.character](self.level), font = pixul_font, alignment = 'center', height_multiplier = 2},
-    {text = '[' .. (self.level == 3 and 'yellow' or 'light_bg') .. ']Lv.3 [' .. (self.level == 3 and 'fg' or 'light_bg') .. ']Effect - ' .. 
+    {text = '[' .. (self.level == 3 and 'yellow' or 'light_bg') .. ']Lv.3 [' .. (self.level == 3 and 'fg' or 'light_bg') .. ']效果 - ' .. 
       (self.level == 3 and character_effect_names[self.character] or character_effect_names_gray[self.character]), font = pixul_font, alignment = 'center', height_multiplier = 1.25},
     {text = (self.level == 3 and character_effect_descriptions[self.character]() or character_effect_descriptions_gray[self.character]()), font = pixul_font, alignment = 'center'},
   }, nil, nil, nil, nil, 16, 4, nil, 2)
@@ -1227,7 +1227,7 @@ function CharacterPart:update(dt)
       self:die()
       self.parent:set_party_and_sets()
       self.parent:refresh_cards()
-      self.parent.party_text:set_text({{text = '[wavy_mid, fg]party ' .. tostring(#self.parent.units) .. '/' .. tostring(max_units), font = pixul_font, alignment = 'center'}})
+      self.parent.party_text:set_text({{text = '[wavy_mid, fg]队伍 ' .. tostring(#self.parent.units) .. '/' .. tostring(max_units), font = pixul_font, alignment = 'center'}})
       system.save_run(self.parent.level, self.parent.loop, gold, self.parent.units, self.parent.passives, self.parent.shop_level, self.parent.shop_xp, run_passive_pool, locked_state)
     else
       self.parent.parent:gain_gold(self:get_sale_price())
@@ -1271,11 +1271,11 @@ function CharacterPart:on_mouse_enter()
   self.spring:pull(0.2, 200, 10)
   self.info_text = InfoText{group = main.current.ui, force_update = self.force_update}
   self.info_text:activate({
-    {text = '[' .. character_color_strings[self.character] .. ']' .. self.character:capitalize() .. '[fg] - [yellow]Lv.' .. self.level .. '[fg], tier [yellow]' .. character_tiers[self.character] .. '[fg] - sells for [yellow]' ..
+    {text = '[' .. character_color_strings[self.character] .. ']' .. (character_names[self.character] or self.character:capitalize()) .. '[fg] - [yellow]Lv.' .. self.level .. '[fg], 阶级 [yellow]' .. character_tiers[self.character] .. '[fg] - 售价 [yellow]' ..
       self:get_sale_price(), font = pixul_font, alignment = 'center', height_multiplier = 1.25},
-    {text = '[fg]Classes: ' .. character_class_strings[self.character], font = pixul_font, alignment = 'center', height_multiplier = 1.25},
+    {text = '[fg]职业: ' .. character_class_strings[self.character], font = pixul_font, alignment = 'center', height_multiplier = 1.25},
     {text = character_descriptions[self.character](self.level), font = pixul_font, alignment = 'center', height_multiplier = 2},
-    {text = '[' .. (self.level == 3 and 'yellow' or 'light_bg') .. ']Lv.3 [' .. (self.level == 3 and 'fg' or 'light_bg') .. ']Effect - ' .. 
+    {text = '[' .. (self.level == 3 and 'yellow' or 'light_bg') .. ']Lv.3 [' .. (self.level == 3 and 'fg' or 'light_bg') .. ']效果 - ' .. 
       (self.level == 3 and character_effect_names[self.character] or character_effect_names_gray[self.character]), font = pixul_font, alignment = 'center', height_multiplier = 1.25},
     {text = (self.level == 3 and character_effect_descriptions[self.character]() or character_effect_descriptions_gray[self.character]()), font = pixul_font, alignment = 'center'},
   }, nil, nil, nil, nil, 16, 4, nil, 2)
@@ -1463,7 +1463,7 @@ function ItemCard:update(dt)
       if not self.info_text_2 then
         self.info_text_2 = InfoText{group = main.current.ui}
         self.info_text_2:activate({
-          {text = '[fg]not enough gold', font = pixul_font, alignment = 'center'},
+          {text = '[fg]金币不足', font = pixul_font, alignment = 'center'},
         }, nil, nil, nil, nil, 16, 4, nil, 2)
         self.info_text_2.x, self.info_text_2.y = gw/2, gh/2 + 30
       end
@@ -1491,7 +1491,7 @@ function ItemCard:update(dt)
           passive.xp = self.xp
         end
       end
-      self.parent.shop_text:set_text{{text = '[wavy_mid, fg]shop [fg]- [fg, nudge_down]gold: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
+      self.parent.shop_text:set_text{{text = '[wavy_mid, fg]商店 [fg]- [fg, nudge_down]金币: [yellow, nudge_down]' .. gold, font = pixul_font, alignment = 'center'}}
       self.text = Text({{text = '[bg10]' .. tostring(self.parent.shop_level), font = pixul_font, alignment = 'center'}}, global_text_tags)
       system.save_run(self.parent.level, self.parent.loop, gold, self.parent.units, self.parent.passives, self.parent.shop_level, self.parent.shop_xp, run_passive_pool, locked_state)
     end
@@ -1547,7 +1547,7 @@ function ItemCard:create_info_text()
   else
     self.info_text = InfoText{group = main.current.ui, force_update = true}
     self.info_text:activate({
-      {text = '[fg]' .. passive_names[self.passive] .. ', [yellow]Lv.' .. self.level .. '[fg], XP: [yellow]' .. self.xp .. '/' .. self.max_xp .. '[fg], +1 XP cost: [yellow]5[fg], sells for: [yellow]' .. 
+      {text = '[fg]' .. passive_names[self.passive] .. ', [yellow]Lv.' .. self.level .. '[fg], XP: [yellow]' .. self.xp .. '/' .. self.max_xp .. '[fg], +1经验花费: [yellow]5[fg], 售价: [yellow]' .. 
         tostring((self.level == 1 and 10) or (self.level == 2 and 20) or (self.level == 3 and 30)), font = pixul_font, alignment = 'center', height_multiplier = 1.25},
       {text = passive_descriptions_level[self.passive](self.level), font = pixul_font, alignment = 'center', height_multiplier = 1.25},
     }, nil, nil, nil, nil, 16, 4, nil, 2)
@@ -1639,7 +1639,7 @@ function ShopCard:update(dt)
       self:die()
       self.parent.cards[self.i] = nil
       self.parent:refresh_cards()
-      self.parent.party_text:set_text({{text = '[wavy_mid, fg]party ' .. tostring(#self.parent.units) .. '/' .. tostring(max_units), font = pixul_font, alignment = 'center'}})
+      self.parent.party_text:set_text({{text = '[wavy_mid, fg]队伍 ' .. tostring(#self.parent.units) .. '/' .. tostring(max_units), font = pixul_font, alignment = 'center'}})
       locked_state = {locked = self.parent.locked, cards = {self.parent.cards[1] and self.parent.cards[1].unit, self.parent.cards[2] and self.parent.cards[2].unit, self.parent.cards[3] and self.parent.cards[3].unit}} 
       system.save_run(self.parent.level, self.parent.loop, gold, self.parent.units, self.parent.passives, self.parent.shop_level, self.parent.shop_xp, run_passive_pool, locked_state)
     else
@@ -1776,10 +1776,10 @@ function CharacterIcon:on_mouse_enter()
   self.spring:pull(0.2, 200, 10)
   self.info_text = InfoText{group = main.current.ui}
   self.info_text:activate({
-    {text = '[' .. character_color_strings[self.character] .. ']' .. self.character:capitalize() .. '[fg] - cost: [yellow]' .. self.parent.cost, font = pixul_font, alignment = 'center', height_multiplier = 1.25},
-    {text = '[fg]Classes: ' .. character_class_strings[self.character], font = pixul_font, alignment = 'center', height_multiplier = 1.25},
+    {text = '[' .. character_color_strings[self.character] .. ']' .. (character_names[self.character] or self.character:capitalize()) .. '[fg] - 费用: [yellow]' .. self.parent.cost, font = pixul_font, alignment = 'center', height_multiplier = 1.25},
+    {text = '[fg]职业: ' .. character_class_strings[self.character], font = pixul_font, alignment = 'center', height_multiplier = 1.25},
     {text = character_descriptions[self.character](1), font = pixul_font, alignment = 'center', height_multiplier = 2},
-    {text = '[' .. (self.level == 3 and 'yellow' or 'light_bg') .. ']Lv.3 [' .. (self.level == 3 and 'fg' or 'light_bg') .. ']Effect - ' .. 
+    {text = '[' .. (self.level == 3 and 'yellow' or 'light_bg') .. ']Lv.3 [' .. (self.level == 3 and 'fg' or 'light_bg') .. ']效果 - ' .. 
       (self.level == 3 and character_effect_names[self.character] or character_effect_names_gray[self.character]), font = pixul_font, alignment = 'center', height_multiplier = 1.25},
     {text = (self.level == 3 and character_effect_descriptions[self.character]() or character_effect_descriptions_gray[self.character]()), font = pixul_font, alignment = 'center'},
     -- {text = character_stats[self.character](1), font = pixul_font, alignment = 'center'},
@@ -1870,7 +1870,7 @@ function TutorialClassIcon:on_mouse_enter()
   local i, j, k, owned = class_set_numbers[self.class](self.units)
   self.info_text = InfoText{group = main.current.tutorial}
   self.info_text:activate({
-    {text = '[' .. class_color_strings[self.class] .. ']' .. self.class:capitalize() .. '[fg] - owned: [yellow]' .. owned, font = pixul_font, alignment = 'center', height_multiplier = 1.25},
+    {text = '[' .. class_color_strings[self.class] .. ']' .. (class_names[self.class] or self.class:capitalize()) .. '[fg] - 已有: [yellow]' .. owned, font = pixul_font, alignment = 'center', height_multiplier = 1.25},
     {text = class_descriptions[self.class]((owned >= j and 2) or (owned >= i and 1) or 0), font = pixul_font, alignment = 'center'},
   }, nil, nil, nil, nil, 16, 4, nil, 2)
   self.info_text.x, self.info_text.y = gw/2 - 25, gh/2 + 25
@@ -2030,7 +2030,7 @@ function ClassIcon:on_mouse_enter()
   local i, j, k, owned = class_set_numbers[self.class](self.units)
   self.info_text = InfoText{group = main.current.ui}
   self.info_text:activate({
-    {text = '[' .. class_color_strings[self.class] .. ']' .. (self.class == 'conjurer' and 'Builder' or self.class:capitalize()) .. '[fg] - owned: [yellow]' .. owned, font = pixul_font, alignment = 'center', height_multiplier = 1.25},
+    {text = '[' .. class_color_strings[self.class] .. ']' .. (class_names[self.class] or self.class:capitalize()) .. '[fg] - 已有: [yellow]' .. owned, font = pixul_font, alignment = 'center', height_multiplier = 1.25},
     {text = class_descriptions[self.class]((k and (owned >= k and 3)) or (owned >= j and 2) or (owned >= i and 1) or 0), font = pixul_font, alignment = 'center'},
   }, nil, nil, nil, nil, 16, 4, nil, 2)
   self.info_text.x, self.info_text.y = gw/2, gh/2 + 10

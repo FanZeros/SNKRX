@@ -148,10 +148,14 @@ function HandleUpdate(eventType, eventData)
   trigger:update(dt)
 
   -- Update mouse position (in design resolution coordinates)
+  -- mousePosition is in physical pixels → divide by DPR → logical pixels
+  -- Then subtract letterbox offset and divide by scale to get design coords
   local dpr = urho_graphics:GetDPR()
   local mx = urho_input.mousePosition.x / dpr
   local my = urho_input.mousePosition.y / dpr
-  mouse:set(mx / sx, my / sy)
+  local ox = screen_ox or 0
+  local oy = screen_oy or 0
+  mouse:set((mx - ox) / sx, (my - oy) / sy)
   mouse_dt:set(mouse.x - last_mouse.x, mouse.y - last_mouse.y)
 
   -- Call the game's update function (from data.lua)

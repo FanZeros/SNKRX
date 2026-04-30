@@ -475,7 +475,10 @@ end
 function Layer:draw()
   nvgSave(vg)
 
-  -- Apply scaling from game resolution to screen (gw/gh → screen)
+  -- Apply offset for letterboxing/pillarboxing, then scale
+  if screen_ox ~= 0 or screen_oy ~= 0 then
+    nvgTranslate(vg, screen_ox, screen_oy)
+  end
   nvgScale(vg, sx, sy)
 
   -- Apply camera transform

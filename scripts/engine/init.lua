@@ -26,6 +26,8 @@ gw = 480
 gh = 270
 sx = 1
 sy = 1
+screen_ox = 0  -- offset for letterboxing/pillarboxing (in logical pixels)
+screen_oy = 0
 time = 0
 refresh_rate = 60
 sfx_volume = 0.5
@@ -148,11 +150,15 @@ function M.init(nvg_ctx)
     local logW = physW / dpr
     local logH = physH / dpr
 
-    sx = logW / gw
-    sy = logH / gh
+    -- Uniform scaling: use min to avoid stretching, center with offset
+    local scale = math.min(logW / gw, logH / gh)
+    sx = scale
+    sy = scale
+    screen_ox = (logW - gw * scale) / 2
+    screen_oy = (logH - gh * scale) / 2
 
     print(string.format("[Engine] Screen: %dx%d (logical: %.0fx%.0f, DPR: %.1f)", physW, physH, logW, logH, dpr))
-    print(string.format("[Engine] Design: %dx%d, Scale: %.2f x %.2f", gw, gh, sx, sy))
+    print(string.format("[Engine] Design: %dx%d, Scale: %.2f, Offset: %.1f, %.1f", gw, gh, scale, screen_ox, screen_oy))
 
     -- Create global singleton instances
     random = Random()
@@ -210,8 +216,11 @@ function M.recalculate_scale()
     local dpr = urho_graphics:GetDPR()
     local logW = physW / dpr
     local logH = physH / dpr
-    sx = logW / gw
-    sy = logH / gh
+    local scale = math.min(logW / gw, logH / gh)
+    sx = scale
+    sy = scale
+    screen_ox = (logW - gw * scale) / 2
+    screen_oy = (logH - gh * scale) / 2
 end
 
 return M
