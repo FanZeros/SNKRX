@@ -1040,11 +1040,25 @@ function EnemyProjectile:init(args)
   self:init_game_object(args)
   if tostring(self.x) == tostring(0/0) or tostring(self.y) == tostring(0/0) then self.dead = true; return end
   self:set_as_rectangle(10, 4, 'dynamic', 'enemy_projectile')
+  self:set_bullet(true)
 end
 
 
 function EnemyProjectile:update(dt)
   self:update_game_object(dt)
+
+  -- Kill enemy projectiles that escape past arena walls
+  if main.current then
+    local ax1 = main.current.x1 or 48
+    local ay1 = main.current.y1 or 27
+    local ax2 = main.current.x2 or 432
+    local ay2 = main.current.y2 or 243
+    local m = 4
+    if self.x < ax1 - m or self.x > ax2 + m or self.y < ay1 - m or self.y > ay2 + m then
+      self:die()
+      return
+    end
+  end
 
   self:set_angle(self.r)
   self:move_along_angle(self.v, self.r)

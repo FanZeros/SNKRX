@@ -1984,6 +1984,7 @@ function Projectile:init(args)
   if tostring(self.x) == tostring(0/0) or tostring(self.y) == tostring(0/0) then self.dead = true; return end
   self.hfx:add('hit', 1)
   self:set_as_rectangle(10, 4, 'dynamic', 'projectile')
+  self:set_bullet(true)
   self.pierce = args.pierce or 0
   self.chain = args.chain or 0
   self.ricochet = args.ricochet or 0
@@ -2114,9 +2115,22 @@ function Projectile:update(dt)
   -- Safety net: TTL and out-of-bounds cleanup
   self.ttl = (self.ttl or 10) - dt
   if self.ttl <= 0 then self.dead = true; return end
-  local margin = 100
-  if self.x < -gw/2 - margin or self.x > gw/2 + margin or self.y < -gh/2 - margin or self.y > gh/2 + margin then
-    self.dead = true; return
+  -- Kill projectiles that escape past arena walls (fallback for missed physics collisions)
+  if main.current and self.character ~= 'psyker' then
+    local ax1 = main.current.x1 or 48
+    local ay1 = main.current.y1 or 27
+    local ax2 = main.current.x2 or 432
+    local ay2 = main.current.y2 or 243
+    local m = 4  -- small margin to avoid killing at exact wall boundary
+    if self.x < ax1 - m or self.x > ax2 + m or self.y < ay1 - m or self.y > ay2 + m then
+      self:die()
+      return
+    end
+  else
+    local margin = 40
+    if self.x < -margin or self.x > gw + margin or self.y < -margin or self.y > gh + margin then
+      self.dead = true; return
+    end
   end
 
   if self.character == 'psyker' then
