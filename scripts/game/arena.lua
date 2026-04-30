@@ -249,13 +249,22 @@ function Arena:on_enter(from, level, loop, units, passives, shop_level, shop_xp,
     end
   end
 
+  -- Settings button in top-left corner (all levels)
+  self.settings_button = Button{group = self.ui, x = 24, y = 13, force_update = true, button_text = 'options', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+    if not self.transitioning and not self.in_credits and not self.choosing_passives then
+      if not self.paused then
+        open_options(self)
+      else
+        close_options(self)
+      end
+    end
+  end}
+
   if self.level == 1 then
-    local t1 = Text2{group = self.floor, x = gw/2, y = gh/2 + 2, sx = 0.6, sy = 0.6, lines = {{text = '[light_bg]<- or a         -> or d', font = fat_font, alignment = 'center'}}}
-    local t2 = Text2{group = self.floor, x = gw/2, y = gh/2 + 18, lines = {{text = '[light_bg]turn left                                      turn right', font = pixul_font, alignment = 'center'}}}
-    local t3 = Text2{group = self.floor, x = gw/2, y = gh/2 + 46, sx = 0.6, sy = 0.6, lines = {{text = '[light_bg]esc - options', font = fat_font, alignment = 'center'}}}
+    local t1 = Text2{group = self.floor, x = gw/2, y = gh/2 + 2, sx = 0.6, sy = 0.6, lines = {{text = '[light_bg]点击左侧              点击右侧', font = fat_font, alignment = 'center'}}}
+    local t2 = Text2{group = self.floor, x = gw/2, y = gh/2 + 18, lines = {{text = '[light_bg]左转                                      右转', font = pixul_font, alignment = 'center'}}}
     t1.t:after(8, function() t1.t:tween(0.2, t1, {sy = 0}, math.linear, function() t1.sy = 0 end) end)
     t2.t:after(8, function() t2.t:tween(0.2, t2, {sy = 0}, math.linear, function() t2.sy = 0 end) end)
-    t3.t:after(8, function() t3.t:tween(0.2, t3, {sy = 0}, math.linear, function() t3.sy = 0 end) end)
   end
 
   -- Calculate class levels
@@ -350,7 +359,7 @@ end
 
 function Arena:update(dt)
   -- Enable touch zone steering only during active combat (not paused/died/won/choosing)
-  input.touch_zone_steering = not self.paused and not self.died and not self.won and not self.choosing_passives
+  input.touch_zone_steering = not self.paused and not self.died and not self.won and not self.choosing_passives and not self.quitting
 
   if main_song_instance:isStopped() then
     main_song_instance = _G[random:table{'song1', 'song2', 'song3', 'song4', 'song5'}]:play{volume = 0.5}
@@ -413,11 +422,13 @@ function Arena:update(dt)
   self:update_game_object(dt*slow_amount)
   main_song_instance.pitch = math.clamp(slow_amount*music_slow_amount, 0.05, 1)
 
-  star_group:update(dt*slow_amount)
-  self.floor:update(dt*slow_amount)
-  self.main:update(dt*slow_amount*self.main_slow_amount)
-  self.post_main:update(dt*slow_amount)
-  self.effects:update(dt*slow_amount)
+  if not self.paused and not self.transitioning then
+    star_group:update(dt*slow_amount)
+    self.floor:update(dt*slow_amount)
+    self.main:update(dt*slow_amount*self.main_slow_amount)
+    self.post_main:update(dt*slow_amount)
+    self.effects:update(dt*slow_amount)
+  end
   self.ui:update(dt*slow_amount)
   self.credits:update(dt)
 end
@@ -675,10 +686,8 @@ function Arena:quit()
   else
     if not self.arena_clear_text then self.arena_clear_text = Text2{group = self.ui, x = gw/2, y = gh/2 - 48, lines = {{text = '[wavy_mid, cbyc]arena clear!', font = fat_font, alignment = 'center'}}} end
     self:gain_gold()
-    self.t:after(2, function()
-      self.slow_transitioning = true
-      self.t:tween(0.7, self, {main_slow_amount = 0}, math.linear, function() self.main_slow_amount = 0 end)
-    end)
+    self.slow_transitioning = true
+    self.t:tween(0.7, self, {main_slow_amount = 0}, math.linear, function() self.main_slow_amount = 0 end)
     self.t:after(3, function()
       if (self.level-(25*self.loop)) % 3 == 0 and #self.passives < 8 then
         input:set_mouse_visible(true)

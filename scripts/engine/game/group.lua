@@ -173,9 +173,16 @@ function Group:get_mouse_position()
   if self.camera then
     return self.camera.mouse.x, self.camera.mouse.y
   else
-    -- UrhoX: use input.mousePosition and scale by sx, sy
-    local mx, my = input.mousePosition.x, input.mousePosition.y
-    return mx / sx, my / sy
+    -- UrhoX: use urho_input.mousePosition (physical pixels),
+    -- convert to logical pixels then to design-space coordinates
+    local inp = urho_input or input
+    local pos = inp.mousePosition
+    if not pos then return 0, 0 end
+    local dpr = urho_graphics and urho_graphics:GetDPR() or 1
+    local mx, my = pos.x / dpr, pos.y / dpr
+    local ox = screen_ox or 0
+    local oy = screen_oy or 0
+    return (mx - ox) / sx, (my - oy) / sy
   end
 end
 

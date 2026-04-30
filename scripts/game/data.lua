@@ -1844,8 +1844,8 @@ function open_options(self)
     self.paused = true
 
     if self:is(Arena) then
-      self.paused_t1 = Text2{group = self.ui, x = gw/2, y = gh/2 - 108, sx = 0.6, sy = 0.6, lines = {{text = '[bg10]<-, a or m1       ->, d or m2', font = fat_font, alignment = 'center'}}}
-      self.paused_t2 = Text2{group = self.ui, x = gw/2, y = gh/2 - 92, lines = {{text = '[bg10]turn left                                            turn right', font = pixul_font, alignment = 'center'}}}
+      self.paused_t1 = Text2{group = self.ui, x = gw/2, y = gh/2 - 108, sx = 0.6, sy = 0.6, lines = {{text = '[bg10]点击左侧              点击右侧', font = fat_font, alignment = 'center'}}}
+      self.paused_t2 = Text2{group = self.ui, x = gw/2, y = gh/2 - 92, lines = {{text = '[bg10]左转                                            右转', font = pixul_font, alignment = 'center'}}}
     end
 
     if self:is(MainMenu) then
@@ -1866,11 +1866,6 @@ function open_options(self)
         if self.run_timer_button then self.run_timer_button.dead = true; self.run_timer_button = nil end
         if self.sfx_button then self.sfx_button.dead = true; self.sfx_button = nil end
         if self.music_button then self.music_button.dead = true; self.music_button = nil end
-        if self.video_button_1 then self.video_button_1.dead = true; self.video_button_1 = nil end
-        if self.video_button_2 then self.video_button_2.dead = true; self.video_button_2 = nil end
-        if self.video_button_3 then self.video_button_3.dead = true; self.video_button_3 = nil end
-        if self.video_button_4 then self.video_button_4.dead = true; self.video_button_4 = nil end
-        if self.quit_button then self.quit_button.dead = true; self.quit_button = nil end
         if self.screen_shake_button then self.screen_shake_button.dead = true; self.screen_shake_button = nil end
         if self.screen_movement_button then self.screen_movement_button.dead = true; self.screen_movement_button = nil end
         if self.cooldown_snake_button then self.cooldown_snake_button.dead = true; self.cooldown_snake_button = nil end
@@ -1982,45 +1977,6 @@ function open_options(self)
       b:set_text('music volume: ' .. tostring((state.music_volume or 0.5)*10))
     end}
 
-    self.video_button_1 = Button{group = self.ui, x = gw/2 - 136, y = gh - 125, force_update = true, button_text = 'window size-', fg_color = 'bg10', bg_color = 'bg', action = function()
-      if sx > 1 and sy > 1 then
-        ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
-        sx, sy = sx - 0.5, sy - 0.5
-        love.window.setMode(480*sx, 270*sy)
-        state.sx, state.sy = sx, sy
-        state.fullscreen = false
-      end
-    end}
-
-    self.video_button_2 = Button{group = self.ui, x = gw/2 - 50, y = gh - 125, force_update = true, button_text = 'window size+', fg_color = 'bg10', bg_color = 'bg', action = function()
-      ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
-      sx, sy = sx + 0.5, sy + 0.5
-      love.window.setMode(480*sx, 270*sy)
-      state.sx, state.sy = sx, sy
-      state.fullscreen = false
-    end}
-
-    self.video_button_3 = Button{group = self.ui, x = gw/2 + 29, y = gh - 125, force_update = true, button_text = 'fullscreen', fg_color = 'bg10', bg_color = 'bg', action = function()
-      ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
-      local _, _, flags = love.window.getMode()
-      local window_width, window_height = love.window.getDesktopDimensions(flags.display)
-      sx, sy = window_width/480, window_height/270
-      state.sx, state.sy = sx, sy
-      ww, wh = window_width, window_height
-      love.window.setMode(window_width, window_height)
-    end}
-
-    self.video_button_4 = Button{group = self.ui, x = gw/2 + 129, y = gh - 125, force_update = true, button_text = 'reset video settings', fg_color = 'bg10', bg_color = 'bg', action = function()
-      local _, _, flags = love.window.getMode()
-      local window_width, window_height = love.window.getDesktopDimensions(flags.display)
-      sx, sy = window_width/480, window_height/270
-      ww, wh = window_width, window_height
-      state.sx, state.sy = sx, sy
-      state.fullscreen = false
-      ww, wh = window_width, window_height
-      love.window.setMode(window_width, window_height)
-    end}
-
     self.screen_shake_button = Button{group = self.ui, x = gw/2 - 57, y = gh - 100, w = 110, force_update = true, button_text = '[bg10]screen shake: ' .. tostring(state.no_screen_shake and 'no' or 'yes'), 
     fg_color = 'bg10', bg_color = 'bg', action = function(b)
       ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
@@ -2090,11 +2046,6 @@ function open_options(self)
       end}
     end
 
-    self.quit_button = Button{group = self.ui, x = gw/2, y = gh - 25, force_update = true, button_text = 'quit', fg_color = 'bg10', bg_color = 'bg', action = function()
-      system.save_state()
-      steam.shutdown()
-      love.event.quit()
-    end}
   end, 'pause')
 end
 
@@ -2113,15 +2064,10 @@ function close_options(self)
     if self.run_timer_button then self.run_timer_button.dead = true; self.run_timer_button = nil end
     if self.sfx_button then self.sfx_button.dead = true; self.sfx_button = nil end
     if self.music_button then self.music_button.dead = true; self.music_button = nil end
-    if self.video_button_1 then self.video_button_1.dead = true; self.video_button_1 = nil end
-    if self.video_button_2 then self.video_button_2.dead = true; self.video_button_2 = nil end
-    if self.video_button_3 then self.video_button_3.dead = true; self.video_button_3 = nil end
-    if self.video_button_4 then self.video_button_4.dead = true; self.video_button_4 = nil end
     if self.screen_shake_button then self.screen_shake_button.dead = true; self.screen_shake_button = nil end
     if self.screen_movement_button then self.screen_movement_button.dead = true; self.screen_movement_button = nil end
     if self.cooldown_snake_button then self.cooldown_snake_button.dead = true; self.cooldown_snake_button = nil end
     if self.arrow_snake_button then self.arrow_snake_button.dead = true; self.arrow_snake_button = nil end
-    if self.quit_button then self.quit_button.dead = true; self.quit_button = nil end
     if self.ng_plus_plus_button then self.ng_plus_plus_button.dead = true; self.ng_plus_plus_button = nil end
     if self.ng_plus_minus_button then self.ng_plus_minus_button.dead = true; self.ng_plus_minus_button = nil end
     if self.main_menu_button then self.main_menu_button.dead = true; self.main_menu_button = nil end

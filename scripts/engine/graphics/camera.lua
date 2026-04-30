@@ -104,7 +104,10 @@ end
 -- Returns values in world coordinates (screen → world).
 function Camera:get_world_coords(x, y)
   local c, s = math.cos(-self.r), math.sin(-self.r)
-  x, y = (x - sx * self.w / 2) / (sx * self.sx), (y - sy * self.h / 2) / (sy * self.sy)
+  -- Subtract letterbox/pillarbox offset before converting to game coordinates
+  local ox = screen_ox or 0
+  local oy = screen_oy or 0
+  x, y = (x - ox - sx * self.w / 2) / (sx * self.sx), (y - oy - sy * self.h / 2) / (sy * self.sy)
   x, y = c * x - s * y, s * x + c * y
   return x + self.x, y + self.y
 end
@@ -281,7 +284,9 @@ function Camera:get_mouse_position()
   local inp = urho_input or input
   local pos = inp.mousePosition
   if not pos then return 0, 0 end
-  local mx, my = pos.x, pos.y
+  -- mousePosition returns physical pixels; convert to logical pixels first
+  local dpr = urho_graphics and urho_graphics:GetDPR() or 1
+  local mx, my = pos.x / dpr, pos.y / dpr
   return self:get_world_coords(mx, my)
 end
 
