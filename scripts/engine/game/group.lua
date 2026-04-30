@@ -415,16 +415,13 @@ function Group:_on_physics_begin_contact(eventData)
       end
     end
 
-    -- For wall collisions (chain shapes), ALWAYS use axis-aligned normals
-    -- regardless of whether engine contact data was available.
-    -- Reason: Unit:bounce() uses axis-flip logic (checks nx==0 or ny==0),
-    -- so it requires pure axis-aligned normals like (1,0) or (0,1).
-    -- Engine contact normals can be arbitrary angles, breaking Unit:bounce().
-    local is_wall_collision = (oa.get_velocity and ob.vertices) or (ob.get_velocity and oa.vertices)
+    -- For wall collisions (chain shapes), ALWAYS use axis-aligned normals.
+    -- Identify wall by .vertices field (chain shape); mover is the other object.
+    local wall_obj = (oa.vertices and oa) or (ob.vertices and ob) or nil
+    local mover = wall_obj and (wall_obj == oa and ob or oa) or nil
+    local is_wall_collision = wall_obj ~= nil and mover ~= nil
 
     if is_wall_collision then
-      local mover = oa.get_velocity and oa or ob
-      local wall_obj = oa.get_velocity and ob or oa
       if not got_contact then
         cx = (oa.x + ob.x) * 0.5
         cy = (oa.y + ob.y) * 0.5
