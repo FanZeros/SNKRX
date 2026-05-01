@@ -402,6 +402,7 @@ function Arena:update(dt)
           'silencing_strike', 'culling_strike', 'lightning_strike', 'psycholeak', 'divine_blessing', 'hardening', 'kinetic_strike',
         }
         max_units = math.clamp(7 + current_new_game_plus + self.loop, 7, 12)
+        revive_count = 0
         main:add(BuyScreen'buy_screen')
         locked_state = nil
         system.save_run()
@@ -844,7 +845,16 @@ function Arena:die()
       self.death_info_text = Text2{group = self.ui, x = gw/2, y = gh/2, sx = 0.7, sy = 0.7, lines = {
         {text = '[wavy_mid, fg]到达关卡: [wavy_mid, yellow]' .. self.level, font = fat_font, alignment = 'center'},
       }}
-      self.restart_button = Button{group = self.ui, x = gw/2, y = gh/2 + 24, force_update = true, button_text = '重新开始(R)', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+      -- Revive button (only if revives remaining)
+      if revive_count < max_revives then
+        self.revive_button = Button{group = self.ui, x = gw/2, y = gh/2 + 24, force_update = true,
+          button_text = '复活继续(' .. (max_revives - revive_count) .. '次)',
+          fg_color = 'bg10', bg_color = 'bg', action = function(b)
+            self:revive()
+          end}
+      end
+      local restart_y = (revive_count < max_revives) and (gh/2 + 48) or (gh/2 + 24)
+      self.restart_button = Button{group = self.ui, x = gw/2, y = restart_y, force_update = true, button_text = '重新开始(R)', fg_color = 'bg10', bg_color = 'bg', action = function(b)
         self.transitioning = true
         ui_transition2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
         ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
@@ -866,6 +876,7 @@ function Arena:die()
             'silencing_strike', 'culling_strike', 'lightning_strike', 'psycholeak', 'divine_blessing', 'hardening', 'kinetic_strike',
           }
           max_units = math.clamp(7 + current_new_game_plus, 7, 12)
+          revive_count = 0
           main:add(BuyScreen'buy_screen')
           system.save_run()
           main:go_to('buy_screen', 1, 0, {}, passives, 1, 0)
@@ -874,6 +885,31 @@ function Arena:die()
     end)
     return true
   end
+end
+
+
+function Arena:revive()
+  if self.transitioning then return end
+  self.transitioning = true
+  revive_count = revive_count + 1
+  ui_transition2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
+  ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
+  ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
+  -- 保存当前关卡状态用于复活
+  local revive_level = self.level
+  local revive_loop = self.loop
+  local revive_units = self.starting_units
+  local revive_passives = self.passives
+  local revive_shop_level = self.shop_level
+  local revive_shop_xp = self.shop_xp
+  local revive_lock = self.lock
+  TransitionEffect{group = main.transitions, x = gw/2, y = gh/2, color = state.dark_transitions and bg[-2] or fg[0], transition_action = function()
+    slow_amount = 1
+    music_slow_amount = 1
+    if main_song_instance then main_song_instance:stop() end
+    main:add(Arena'arena')
+    main:go_to('arena', revive_level, revive_loop, revive_units, revive_passives, revive_shop_level, revive_shop_xp, revive_lock)
+  end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']复活中...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
 end
 
 

@@ -58,6 +58,10 @@ flash_color = nil
 run_passive_pool = {}
 ---@type number
 new_game_plus = 0
+---@type number
+revive_count = 0
+---@type number
+max_revives = 1
 ---@type boolean
 web = false
 ---@type number

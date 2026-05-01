@@ -14,18 +14,35 @@
 Graphics = Object:extend()
 
 ------------------------------------------------------------------------
+-- Shadow mode: when true, all colors are replaced with dark gray to
+-- simulate the original GLSL shadow shader:
+--   vec4(0.1, 0.1, 0.1, originalAlpha * 0.5)
+-- Toggled by Shader:set()/unset() for the shadow pass.
+------------------------------------------------------------------------
+local _shadow_mode = false
+
+------------------------------------------------------------------------
 -- Helper: set NanoVG color from a Color object (forward-declared before init_module)
 ------------------------------------------------------------------------
 local function set_nvg_color(color)
-  if color then
+  if _shadow_mode then
+    local a = color and color.a or 1.0
+    nvgFillColor(vg, nvgRGBAf(0.1, 0.1, 0.1, a * 0.5))
+    nvgStrokeColor(vg, nvgRGBAf(0.1, 0.1, 0.1, a * 0.5))
+  elseif color then
     nvgFillColor(vg, nvgRGBAf(color.r, color.g, color.b, color.a))
     nvgStrokeColor(vg, nvgRGBAf(color.r, color.g, color.b, color.a))
   end
 end
 
 local function reset_nvg_color()
-  nvgFillColor(vg, nvgRGBAf(1, 1, 1, 1))
-  nvgStrokeColor(vg, nvgRGBAf(1, 1, 1, 1))
+  if _shadow_mode then
+    nvgFillColor(vg, nvgRGBAf(0.1, 0.1, 0.1, 0.5))
+    nvgStrokeColor(vg, nvgRGBAf(0.1, 0.1, 0.1, 0.5))
+  else
+    nvgFillColor(vg, nvgRGBAf(1, 1, 1, 1))
+    nvgStrokeColor(vg, nvgRGBAf(1, 1, 1, 1))
+  end
 end
 
 ------------------------------------------------------------------------
@@ -46,8 +63,20 @@ function Graphics:init_module()
   -- Module-level convenience functions (called as graphics.func, NOT graphics:func)
   -- Text and other systems use these: graphics.set_color(c), graphics.push(...), etc.
   local g = self
+  -- Shadow mode accessors (used by Shader to toggle shadow rendering)
+  self.set_shadow_mode = function(enabled)
+    _shadow_mode = enabled
+  end
+  self.get_shadow_mode = function()
+    return _shadow_mode
+  end
+
   self.set_color = function(color)
-    if color then
+    if _shadow_mode then
+      local a = color and color.a or 1.0
+      nvgFillColor(vg, nvgRGBAf(0.1, 0.1, 0.1, a * 0.5))
+      nvgStrokeColor(vg, nvgRGBAf(0.1, 0.1, 0.1, a * 0.5))
+    elseif color then
       nvgFillColor(vg, nvgRGBAf(color.r, color.g, color.b, color.a))
       nvgStrokeColor(vg, nvgRGBAf(color.r, color.g, color.b, color.a))
     else
@@ -240,12 +269,101 @@ function Graphics:init_module()
     reset_nvg_color()
   end
 
-  -- graphics.draw_with_mask(mask_fn, draw_fn, inverted)
-  -- Original: uses stencil buffer to mask content. NanoVG doesn't support stencil masking.
-  -- Simplified: just draw mask_fn content directly (the stars). The mask shape is skipped
-  -- since stars are already bounded by their canvas size.
-  self.draw_with_mask = function(mask_fn, draw_fn, inverted)
-    if mask_fn then mask_fn() end
+  -- graphics.draw_with_mask(action, mask_action, inverted)
+  -- Original: uses LÖVE2D stencil buffer to mask content.
+  -- NanoVG doesn't support stencil, so we use nvgScissor with 4-pass rendering.
+  --
+  -- action:      draws the CONTENT (e.g. stars)
+  -- mask_action: draws the MASK SHAPE (e.g. arena rectangle)
+  -- inverted:    if true, content is only drawn OUTSIDE the mask shape
+  --
+  -- All SNKRX call sites use: a centered rectangle mask with inverted=true,
+  -- meaning "draw stars only outside the arena rectangle".
+  self.draw_with_mask = function(action, mask_action, inverted)
+    if not action then return end
+    if not mask_action then
+      action()
+      return
+    end
+
+    -- Capture the mask rectangle bounds by intercepting graphics.rectangle
+    -- and camera:attach during mask_action execution (without actually drawing).
+    local captured_rect = nil
+    local captured_cam = nil
+    local orig_rect_fn = self.rectangle
+    local orig_cam_attach = camera.attach
+    local orig_cam_detach = camera.detach
+
+    camera.attach = function(cam, sfx, sfy)
+      captured_cam = {
+        x = cam.x * (sfx or 1),
+        y = cam.y * (sfy or sfx or 1),
+        w = cam.w, h = cam.h,
+        sx = cam.sx or 1, sy = cam.sy or 1,
+      }
+    end
+    camera.detach = function() end
+    self.rectangle = function(x, y, w, h, ...)
+      captured_rect = { x = x, y = y, w = w, h = h }
+    end
+
+    mask_action()
+
+    self.rectangle = orig_rect_fn
+    camera.attach = orig_cam_attach
+    camera.detach = orig_cam_detach
+
+    if captured_rect and captured_cam then
+      local cr = captured_rect
+      local cs = captured_cam
+      -- Convert centered rect to screen-space top-left + size
+      -- Camera transform: translate(cam.w/2, cam.h/2) → scale → translate(-cam.x, -cam.y)
+      local sx = (cr.x - cr.w/2 - cs.x) * cs.sx + cs.w / 2
+      local sy = (cr.y - cr.h/2 - cs.y) * cs.sy + cs.h / 2
+      local sw = cr.w * cs.sx
+      local sh = cr.h * cs.sy
+
+      if inverted then
+        -- Draw content in 4 strips OUTSIDE the mask rectangle.
+        -- Canvas:draw clears _draw_action after first call, so we temporarily
+        -- swap Canvas.draw → Canvas.draw2 (no-clear version) for the passes.
+        local orig_canvas_draw = Canvas.draw
+        local drawn_canvases = {}
+        Canvas.draw = function(self2, ...)
+          drawn_canvases[self2] = true
+          Canvas.draw2(self2, ...)
+        end
+
+        local clips = {
+          { x = 0,      y = 0,      w = gw,               h = math.max(0, sy) },          -- top
+          { x = 0,      y = sy + sh, w = gw,               h = math.max(0, gh - sy - sh) }, -- bottom
+          { x = 0,      y = sy,     w = math.max(0, sx),   h = sh },                       -- left
+          { x = sx + sw, y = sy,     w = math.max(0, gw - sx - sw), h = sh },               -- right
+        }
+        for _, clip in ipairs(clips) do
+          if clip.w > 0 and clip.h > 0 then
+            nvgSave(vg)
+            nvgScissor(vg, clip.x, clip.y, clip.w, clip.h)
+            action()
+            nvgRestore(vg)
+          end
+        end
+
+        Canvas.draw = orig_canvas_draw
+        for canvas, _ in pairs(drawn_canvases) do
+          canvas._draw_action = nil
+        end
+      else
+        -- Non-inverted: draw content only INSIDE the mask rectangle
+        nvgSave(vg)
+        nvgScissor(vg, sx, sy, sw, sh)
+        action()
+        nvgRestore(vg)
+      end
+    else
+      -- Fallback: couldn't capture mask bounds, draw without masking
+      action()
+    end
   end
 
   -- graphics.rectangle2(x, y, w, h, rx, ry, color, line_width)
