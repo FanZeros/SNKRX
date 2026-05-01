@@ -143,9 +143,11 @@ function Player:init(args)
         for i = 1, 4 do
           local check_circle = Circle(random:float(main.current.x1 + 16, main.current.x2 - 16), random:float(main.current.y1 + 16, main.current.y2 - 16), 2)
           local objects = main.current.main:get_objects_in_shape(check_circle, {Seeker, EnemyCritter, Critter, Sentry, Automaton, Bomb, Volcano, Saboteur, Pet, Turret})
-          while #objects > 0 do
+          local runs = 0
+          while #objects > 0 and runs < 1000 do
             check_circle:move_to(random:float(main.current.x1 + 16, main.current.x2 - 16), random:float(main.current.y1 + 16, main.current.y2 - 16))
             objects = main.current.main:get_objects_in_shape(check_circle, {Seeker, EnemyCritter, Critter, Sentry, Automaton, Bomb, Volcano, Saboteur, Pet, Turret})
+            runs = runs + 1
           end
           SpawnEffect{group = main.current.effects, x = check_circle.x, y = check_circle.y, color = green[0], action = function(x, y)
             local check_circle = Circle(x, y, 2)
@@ -158,9 +160,11 @@ function Player:init(args)
       else
         local check_circle = Circle(random:float(main.current.x1 + 16, main.current.x2 - 16), random:float(main.current.y1 + 16, main.current.y2 - 16), 2)
         local objects = main.current.main:get_objects_in_shape(check_circle, {Seeker, EnemyCritter, Critter, Sentry, Automaton, Bomb, Volcano, Saboteur, Pet, Turret})
-        while #objects > 0 do
+        local runs = 0
+        while #objects > 0 and runs < 1000 do
           check_circle:move_to(random:float(main.current.x1 + 16, main.current.x2 - 16), random:float(main.current.y1 + 16, main.current.y2 - 16))
           objects = main.current.main:get_objects_in_shape(check_circle, {Seeker, EnemyCritter, Critter, Sentry, Automaton, Bomb, Volcano, Saboteur, Pet, Turret})
+          runs = runs + 1
         end
         SpawnEffect{group = main.current.effects, x = check_circle.x, y = check_circle.y, color = green[0], action = function(x, y)
           local check_circle = Circle(x, y, 2)
@@ -348,7 +352,7 @@ function Player:init(args)
           x = x/#enemies
           y = y/#enemies
         end
-        if x == 0 and y == 0 then x, y = gw/2, gh/2 end
+        if x == 0 and y == 0 then x, y = dgw/2, dgh/2 end
         x, y = x + self.x, y + self.y
         x, y = x/2, y/2
         main.current.t:every_immediate(0.1, function()
@@ -705,9 +709,11 @@ function Player:init(args)
         for i = 1, 2 do
           local check_circle = Circle(random:float(main.current.x1 + 16, main.current.x2 - 16), random:float(main.current.y1 + 16, main.current.y2 - 16), 2)
           local objects = main.current.main:get_objects_in_shape(check_circle, {Seeker, EnemyCritter, Critter, Volcano, Saboteur, Bomb, Pet, Turret, Sentry})
-          while #objects > 0 do
+          local runs = 0
+          while #objects > 0 and runs < 1000 do
             check_circle:move_to(random:float(main.current.x1 + 16, main.current.x2 - 16), random:float(main.current.y1 + 16, main.current.y2 - 16))
             objects = main.current.main:get_objects_in_shape(check_circle, {Seeker, EnemyCritter, Critter, Volcano, Saboteur, Pet, Turret, Sentry, Bomb})
+            runs = runs + 1
           end
           SpawnEffect{group = main.current.effects, x = check_circle.x, y = check_circle.y, color = green[0], action = function(x, y)
             local check_circle = Circle(x, y, 2)
@@ -731,9 +737,11 @@ function Player:init(args)
         buff1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
         local check_circle = Circle(random:float(main.current.x1 + 16, main.current.x2 - 16), random:float(main.current.y1 + 16, main.current.y2 - 16), 2)
         local objects = main.current.main:get_objects_in_shape(check_circle, {Seeker, EnemyCritter, Critter, Volcano, Saboteur, Bomb, Pet, Turret, Sentry})
-        while #objects > 0 do
+        local runs = 0
+        while #objects > 0 and runs < 1000 do
           check_circle:move_to(random:float(main.current.x1 + 16, main.current.x2 - 16), random:float(main.current.y1 + 16, main.current.y2 - 16))
           objects = main.current.main:get_objects_in_shape(check_circle, {Seeker, EnemyCritter, Critter, Volcano, Saboteur, Bomb, Pet, Turret, Sentry})
+          runs = runs + 1
         end
         SpawnEffect{group = main.current.effects, x = check_circle.x, y = check_circle.y, color = green[0], action = function(x, y)
           local check_circle = Circle(x, y, 2)
@@ -867,6 +875,19 @@ function Player:init(args)
         end
       end
     end, nil, nil, 'buff')
+
+  elseif self.character == 'merchant' then
+    self.t:every(8, function()
+      if not main.current.main or not main.current.main.world then return end
+      local n = (self.level == 3 and 3) or (self.level == 2 and 2) or 1
+      for i = 1, n do
+        trigger:after(0.1 * (i - 1), function()
+          if not main.current.main or not main.current.main.world then return end
+          Gold{group = main.current.main, x = self.x, y = self.y}
+        end)
+      end
+      _G[random:table{'coins1', 'coins2', 'coins3'}]:play{pitch = random:float(0.95, 1.05), volume = 0.4}
+    end, nil, nil, 'gold')
   end
 
   self:calculate_stats(true)
@@ -896,10 +917,9 @@ function Player:init(args)
               cx = cx + unit.x
               cy = cy + unit.y
             end
-            cx = cx/#units
-            cy = cy/#units
+            if #units > 0 then cx = cx/#units; cy = cy/#units end
             local unit = random:table(units)
-            unit:barrage(unit:angle_from_point(cx, cy), 1)
+            if unit then unit:barrage(unit:angle_from_point(cx, cy), 1) end
           end
         end
       end)
@@ -1350,7 +1370,13 @@ function Player:update(dt)
   self.t:set_every_multiplier('attack', self.aspd_m)
 
   if self.leader then
-    if not main.current:is(MainMenu) then
+    -- Stop all movement after battle ends (win/clear or death)
+    local battle_over = main.current.arena_clear_text or main.current.died or main.current.won
+    if battle_over then
+      self:set_velocity(0, 0)
+    end
+
+    if not battle_over and not main.current:is(MainMenu) then
       if input.move_left.pressed and not self.move_right_pressed then self.move_left_pressed = love.timer.getTime() end
       if input.move_right.pressed and not self.move_left_pressed then self.move_right_pressed = love.timer.getTime() end
       if input.move_left.released then self.move_left_pressed = nil end
@@ -1367,21 +1393,23 @@ function Player:update(dt)
       end
     end
 
-    local total_v = 0
-    local units = self:get_all_units()
-    for _, unit in ipairs(units) do
-      total_v = total_v + unit.max_v
-    end
-    total_v = math.floor(total_v/#units)
-    self.total_v = total_v
+    if not battle_over then
+      local total_v = 0
+      local units = self:get_all_units()
+      for _, unit in ipairs(units) do
+        total_v = total_v + unit.max_v
+      end
+      total_v = #units > 0 and math.floor(total_v/#units) or 0
+      self.total_v = total_v
 
-    self:set_velocity(total_v*math.cos(self.r), total_v*math.sin(self.r))
+      self:set_velocity(total_v*math.cos(self.r), total_v*math.sin(self.r))
+    end
 
     if not main.current.won and not main.current.choosing_passives then
       if not state.no_screen_movement then
         local vx, vy = self:get_velocity()
-        local hd = math.remap(math.abs(self.x - gw/2), 0, 192, 1, 0)
-        local vd = math.remap(math.abs(self.y - gh/2), 0, 108, 1, 0)
+        local hd = math.remap(math.abs(self.x - dgw/2), 0, 192, 1, 0)
+        local vd = math.remap(math.abs(self.y - dgh/2), 0, 108, 1, 0)
         camera.x = camera.x + math.remap(vx, -100, 100, -24*hd, 24*hd)*dt
         camera.y = camera.y + math.remap(vy, -100, 100, -8*vd, 8*vd)*dt
         if input.move_right.down then camera.r = math.lerp_angle_dt(0.01, dt, camera.r, math.pi/256)
@@ -1578,9 +1606,11 @@ function Player:hit(damage, from_undead)
       self.stored_heal = 0
       local check_circle = Circle(random:float(main.current.x1 + 16, main.current.x2 - 16), random:float(main.current.y1 + 16, main.current.y2 - 16), 2)
       local objects = main.current.main:get_objects_in_shape(check_circle, {Seeker, EnemyCritter, Critter, Volcano, Saboteur, Bomb, Pet, Turret, Sentry, Automaton})
-      while #objects > 0 do
+      local runs = 0
+      while #objects > 0 and runs < 1000 do
         check_circle:move_to(random:float(main.current.x1 + 16, main.current.x2 - 16), random:float(main.current.y1 + 16, main.current.y2 - 16))
         objects = main.current.main:get_objects_in_shape(check_circle, {Seeker, EnemyCritter, Critter, Volcano, Saboteur, Bomb, Pet, Turret, Sentry, Automaton})
+        runs = runs + 1
       end
       for i = 1, 3 do
         SpawnEffect{group = main.current.effects, x = check_circle.x, y = check_circle.y, color = green[0], action = function(x, y)
@@ -1595,8 +1625,10 @@ function Player:hit(damage, from_undead)
 
     if self.level == 3 then
       local enemies = main.current.main:get_objects_by_classes(main.current.enemies)
-      for _, enemy in ipairs(enemies) do
-        enemy:hit(2*actual_damage/#enemies)
+      if #enemies > 0 then
+        for _, enemy in ipairs(enemies) do
+          enemy:hit(2*actual_damage/#enemies)
+        end
       end
     end
   end
@@ -2112,9 +2144,11 @@ end
 function Projectile:update(dt)
   self:update_game_object(dt)
 
-  -- Safety net: TTL and out-of-bounds cleanup
-  self.ttl = (self.ttl or 10) - dt
-  if self.ttl <= 0 then self.dead = true; return end
+  -- Safety net: TTL and out-of-bounds cleanup (psyker orbs skip TTL — they live as long as parent)
+  if self.character ~= 'psyker' then
+    self.ttl = (self.ttl or 10) - dt
+    if self.ttl <= 0 then self.dead = true; return end
+  end
   -- Kill projectiles that escape past arena walls (fallback for missed physics collisions)
   if main.current and self.character ~= 'psyker' then
     local ax1 = main.current.x1 or 48
@@ -3533,7 +3567,7 @@ function Saboteur:update(dt)
   if not self.target then self.target = random:table(self.group:get_objects_by_classes(main.current.enemies)) end
   if self.target and self.target.dead then self.target = random:table(self.group:get_objects_by_classes(main.current.enemies)) end
   if not self.target then
-    self:seek_point(gw/2, gh/2)
+    self:seek_point(dgw/2, dgh/2)
     self:rotate_towards_velocity(0.5)
     self.r = self:get_angle()
   else
@@ -3665,7 +3699,7 @@ function Automaton:update(dt)
   if self.target and self.target.dead then self.target = random:table(self.group:get_objects_by_classes(main.current.enemies)) end
   if not self.seek_f then return end
   if not self.target then
-    self:seek_point(gw/2, gh/2)
+    self:seek_point(dgw/2, dgh/2)
     self:wander(50, 200, 50)
     self:rotate_towards_velocity(1)
     self:steering_separate(32, {Seeker})
@@ -3948,7 +3982,7 @@ function Critter:update(dt)
     if self.target and self.target.dead then self.target = random:table(self.group:get_objects_by_classes(main.current.enemies)) end
     if not self.seek_f then return end
     if not self.target then
-      self:seek_point(gw/2, gh/2)
+      self:seek_point(dgw/2, dgh/2)
       self:wander(50, 200, 50)
       self:rotate_towards_velocity(1)
       self:steering_separate(8, {Critter})
