@@ -105,6 +105,7 @@ function Input:init(joystick_index)
   self.textinput_buffer = ''
   self.last_key_pressed = nil
   self.touch_zone_steering = false  -- set true during active gameplay to enable left/right screen zone steering
+  self._is_touch = false       -- detected touch device
   return self
 end
 
@@ -159,6 +160,15 @@ function Input:poll_urho()
   local wheel = urho_input:GetMouseMoveWheel()
   self.mouse_state.wheel_up = wheel > 0
   self.mouse_state.wheel_down = wheel < 0
+
+  -- Detect touch device: if engine reports any touch, mark as touch device
+  if not self._is_touch and urho_input:GetNumTouches() > 0 then
+    self._is_touch = true
+  end
+
+  -- Clear per-frame touch coordination signals (set by Group sticky hover logic)
+  self._touch_sticky_active = nil
+  self._touch_confirm_group = nil
 end
 
 

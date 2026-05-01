@@ -29,8 +29,287 @@ function Group:init()
 end
 
 
+-- Helper: hit-test a point against an object's shape (center-based).
+local function _hit_test(object, mx, my)
+  local shape = object.shape
+  if not shape then return false end
+  if shape.w then
+    return mx >= object.x - shape.w / 2 and mx <= object.x + shape.w / 2
+        and my >= object.y - shape.h / 2 and my <= object.y + shape.h / 2
+  elseif shape.r then
+    local dx, dy = mx - object.x, my - object.y
+    return (dx * dx + dy * dy) <= shape.r * shape.r
+  elseif shape.rs then
+    local dx, dy = mx - object.x, my - object.y
+    return (dx * dx + dy * dy) <= shape.rs * shape.rs
+  end
+  return false
+end
+
+-- Compute the mouse position in this group's coordinate space.
+function Group:_get_group_mouse_pos()
+  local mx, my
+  if mouse then mx, my = mouse.x, mouse.y end
+  if mx and my and self.camera then
+    mx = mx + self.camera.x - self.camera.w / 2
+    my = my + self.camera.y - self.camera.h / 2
+  end
+  return mx, my
+end
+
+-- Run hover detection for all interactive objects in this group.
+-- Calls on_mouse_enter / on_mouse_exit as needed.
+function Group:_run_hover_detection(mx, my)
+  if not self._hover_state then self._hover_state = {} end
+  for _, object in ipairs(self.objects) do
+    if not object.dead and object.interact_with_mouse and object.shape then
+      -- On touch devices, skip sticky-hovered objects (managed separately)
+      if input and input._is_touch and self._touch_hover_obj_id == object.id then
+        goto skip_hover
+      end
+      local inside = _hit_test(object, mx, my)
+      local was_inside = self._hover_state[object.id]
+      if inside and not was_inside then
+        if object.on_mouse_enter then object:on_mouse_enter() end
+        self._hover_state[object.id] = true
+      elseif not inside and was_inside then
+        if object.on_mouse_exit then object:on_mouse_exit() end
+        self._hover_state[object.id] = false
+      end
+      ::skip_hover::
+    end
+  end
+end
+
+-- Phase 1 of two-phase touch update.
+-- Must be called for ALL groups BEFORE any group's update() runs.
+-- This ensures cross-group sticky hover signals (_touch_sticky_active,
+-- _touch_confirm_group) are fully resolved before any object processes
+-- input.m1.pressed.
+--
+-- Screens that call pre_touch_scan must clear the global signals first:
+--   input._touch_sticky_active = nil
+--   input._touch_confirm_group = nil
+--   group1:pre_touch_scan()
+--   group2:pre_touch_scan()
+--   ...
+--   group1:update(dt)
+--   group2:update(dt)
+function Group:pre_touch_scan()
+  if not (input and input._is_touch) or input.touch_zone_steering then return end
+
+  local mx, my = self:_get_group_mouse_pos()
+  if not mx or not my then return end
+
+  -- Mark that hover + sticky logic was already done (update() will skip it)
+  self._pre_touch_done = true
+  if not self._hover_state then self._hover_state = {} end
+
+  -- Hover detection (on_mouse_enter / on_mouse_exit)
+  self:_run_hover_detection(mx, my)
+
+  -- Sticky hover logic
+  self._touch_suppress_m1 = false
+  local m1_pressed = input.m1 and input.m1.pressed
+  if m1_pressed then
+    local prev_id = self._touch_hover_obj_id
+    local prev_obj = prev_id and self.objects.by_id[prev_id]
+
+    -- Priority: check if touch is on the sticky-hovered object (confirm tap)
+    local touched_obj = nil
+    if prev_obj and not prev_obj.dead and prev_obj.shape then
+      if _hit_test(prev_obj, mx, my) then
+        touched_obj = prev_obj
+      end
+    end
+
+    -- If not on sticky object, find which other object was touched
+    if not touched_obj then
+      for _, object in ipairs(self.objects) do
+        if not object.dead and object.interact_with_mouse and object.shape
+            and self._hover_state[object.id] then
+          touched_obj = object
+          break
+        end
+      end
+    end
+
+    if touched_obj then
+      if prev_id == touched_obj.id then
+        -- Same object tapped again
+        local elapsed = love.timer.getTime() - (self._touch_hover_time or 0)
+        if elapsed <= 0.5 then
+          -- Within double-tap window → confirm (second tap)
+          self._touch_hover_obj_id = nil
+          self._touch_hover_time = nil
+          input._touch_confirm_group = self
+        else
+          -- Too slow → treat as new first tap (re-show info)
+          self._touch_hover_time = love.timer.getTime()
+          self._touch_suppress_m1 = true
+          input._touch_sticky_active = true
+        end
+      else
+        -- Different object or first touch
+        if prev_obj and not prev_obj.dead and self._hover_state[prev_id] then
+          if prev_obj.on_mouse_exit then prev_obj:on_mouse_exit() end
+          self._hover_state[prev_id] = false
+        end
+        if touched_obj.touch_direct then
+          -- Object handles its own touch → bypass sticky, let click through
+          self._touch_hover_obj_id = nil
+          self._touch_hover_time = nil
+        elseif touched_obj.info_text then
+          -- Has hover info → sticky, suppress click
+          self._touch_hover_obj_id = touched_obj.id
+          self._touch_hover_time = love.timer.getTime()
+          self._touch_suppress_m1 = true
+          input._touch_sticky_active = true
+        else
+          -- No hover info → direct click
+          self._touch_hover_obj_id = nil
+          self._touch_hover_time = nil
+        end
+      end
+    else
+      -- Tapped empty space → clear sticky hover
+      if prev_obj and not prev_obj.dead then
+        if self._hover_state[prev_id] then
+          if prev_obj.on_mouse_exit then prev_obj:on_mouse_exit() end
+          self._hover_state[prev_id] = false
+        end
+      end
+      self._touch_hover_obj_id = nil
+      self._touch_hover_time = nil
+    end
+  end
+end
+
+
 function Group:update(dt)
   self.t:update(dt)
+
+  -- Mouse hover detection BEFORE object:update so that touch-down on mobile
+  -- sets selected=true in the same frame as input.m1.pressed.
+  -- Skip if pre_touch_scan() already handled this (two-phase mode).
+  local mx, my = self:_get_group_mouse_pos()
+  if mx and my and not self._pre_touch_done then
+    if not self._hover_state then self._hover_state = {} end
+    self:_run_hover_detection(mx, my)
+  end
+
+  -- Touch sticky hover: when pre_touch_scan was NOT called (single-phase
+  -- fallback for screens that don't use two-phase), run the inline logic.
+  -- When pre_touch_scan WAS called, only apply the suppression signals here.
+  local _saved_m1_pressed = nil
+  if input and input._is_touch and not input.touch_zone_steering then
+    if self._pre_touch_done then
+      -- Two-phase mode: use results from pre_touch_scan
+      if self._touch_suppress_m1 then
+        _saved_m1_pressed = true
+        input.m1.pressed = false
+        self._touch_suppress_m1 = false
+      end
+      -- Check cross-group signals
+      if input._touch_sticky_active and _saved_m1_pressed == nil and input.m1 and input.m1.pressed then
+        for _, object in ipairs(self.objects) do
+          if not object.dead and object.interact_with_mouse and object.shape
+              and self._hover_state and self._hover_state[object.id] and not object.info_text then
+            _saved_m1_pressed = true
+            input.m1.pressed = false
+            break
+          end
+        end
+      end
+      if input._touch_confirm_group and input._touch_confirm_group ~= self
+          and _saved_m1_pressed == nil and input.m1 and input.m1.pressed then
+        for _, object in ipairs(self.objects) do
+          if not object.dead and object.interact_with_mouse and object.shape
+              and self._hover_state and self._hover_state[object.id] and not object.info_text then
+            _saved_m1_pressed = true
+            input.m1.pressed = false
+            break
+          end
+        end
+      end
+    else
+      -- Single-phase fallback (for screens that don't call pre_touch_scan)
+      local m1_pressed = input.m1 and input.m1.pressed
+      if m1_pressed and mx and my then
+        local prev_id = self._touch_hover_obj_id
+        local prev_obj = prev_id and self.objects.by_id[prev_id]
+
+        local touched_obj = nil
+        if prev_obj and not prev_obj.dead and prev_obj.shape then
+          if _hit_test(prev_obj, mx, my) then
+            touched_obj = prev_obj
+          end
+        end
+        if not touched_obj then
+          for _, object in ipairs(self.objects) do
+            if not object.dead and object.interact_with_mouse and object.shape
+                and self._hover_state and self._hover_state[object.id] then
+              touched_obj = object
+              break
+            end
+          end
+        end
+
+        if touched_obj then
+          if prev_id == touched_obj.id then
+            self._touch_hover_obj_id = nil
+            input._touch_confirm_group = self
+          else
+            if prev_obj and not prev_obj.dead and self._hover_state[prev_id] then
+              if prev_obj.on_mouse_exit then prev_obj:on_mouse_exit() end
+              self._hover_state[prev_id] = false
+            end
+            if touched_obj.info_text then
+              self._touch_hover_obj_id = touched_obj.id
+              _saved_m1_pressed = true
+              input.m1.pressed = false
+              input._touch_sticky_active = true
+            else
+              self._touch_hover_obj_id = nil
+            end
+          end
+        else
+          if prev_obj and not prev_obj.dead then
+            if self._hover_state[prev_id] then
+              if prev_obj.on_mouse_exit then prev_obj:on_mouse_exit() end
+              self._hover_state[prev_id] = false
+            end
+          end
+          self._touch_hover_obj_id = nil
+        end
+      end
+
+      -- Single-phase cross-group checks (may be stale for groups updated earlier)
+      if input._touch_sticky_active and _saved_m1_pressed == nil and input.m1 and input.m1.pressed then
+        for _, object in ipairs(self.objects) do
+          if not object.dead and object.interact_with_mouse and object.shape
+              and self._hover_state and self._hover_state[object.id] and not object.info_text then
+            _saved_m1_pressed = true
+            input.m1.pressed = false
+            break
+          end
+        end
+      end
+      if input._touch_confirm_group and input._touch_confirm_group ~= self
+          and _saved_m1_pressed == nil and input.m1 and input.m1.pressed then
+        for _, object in ipairs(self.objects) do
+          if not object.dead and object.interact_with_mouse and object.shape
+              and self._hover_state and self._hover_state[object.id] and not object.info_text then
+            _saved_m1_pressed = true
+            input.m1.pressed = false
+            break
+          end
+        end
+      end
+    end
+  end
+  self._pre_touch_done = false -- reset for next frame
+
   for _, object in ipairs(self.objects) do
     if not object.dead then
       if object.force_update then
@@ -41,41 +320,10 @@ function Group:update(dt)
     end
   end
 
-  -- Mouse hover detection for objects with interact_with_mouse
-  if not self._hover_state then self._hover_state = {} end
-  local mx, my
-  if mouse then
-    mx, my = mouse.x, mouse.y
-  end
-  if mx and my then
-    for _, object in ipairs(self.objects) do
-      if not object.dead and object.interact_with_mouse and object.shape then
-        local inside = false
-        local shape = object.shape
-        if shape.w then
-          -- Rectangle: SNKRX uses center-based positioning
-          inside = mx >= object.x - shape.w / 2 and mx <= object.x + shape.w / 2
-              and my >= object.y - shape.h / 2 and my <= object.y + shape.h / 2
-        elseif shape.r then
-          -- Circle: distance-based hit test
-          local dx, dy = mx - object.x, my - object.y
-          inside = (dx * dx + dy * dy) <= shape.r * shape.r
-        elseif shape.rs then
-          -- Circle variant with .rs
-          local dx, dy = mx - object.x, my - object.y
-          inside = (dx * dx + dy * dy) <= shape.rs * shape.rs
-        end
-
-        local was_inside = self._hover_state[object.id]
-        if inside and not was_inside then
-          if object.on_mouse_enter then object:on_mouse_enter() end
-          self._hover_state[object.id] = true
-        elseif not inside and was_inside then
-          if object.on_mouse_exit then object:on_mouse_exit() end
-          self._hover_state[object.id] = false
-        end
-      end
-    end
+  -- Restore m1.pressed after this group's object updates, so other groups
+  -- (updated later) see the original value and handle their own sticky hover.
+  if _saved_m1_pressed and input and input.m1 then
+    input.m1.pressed = _saved_m1_pressed
   end
 
   -- UrhoX physics world steps automatically via the engine loop,
@@ -97,6 +345,7 @@ function Group:update(dt)
     if self.objects[i].dead then
       if self.objects[i].destroy then self.objects[i]:destroy() end
       if self._hover_state then self._hover_state[self.objects[i].id] = nil end
+      if self._touch_hover_obj_id == self.objects[i].id then self._touch_hover_obj_id = nil end
       self.objects.by_id[self.objects[i].id] = nil
       table.delete(self.objects.by_class[getmetatable(self.objects[i])], function(v) return v.id == self.objects[i].id end)
       table.remove(self.objects, i)
@@ -430,8 +679,10 @@ function Group:_on_physics_begin_contact(eventData)
 
     if is_wall_collision then
       if not got_contact then
-        cx = (oa.x + ob.x) * 0.5
-        cy = (oa.y + ob.y) * 0.5
+        -- Use the mover (projectile) position as contact point, not the midpoint.
+        -- Wall objects may have their origin at arena center, so midpoint is inaccurate.
+        cx = mover.x
+        cy = mover.y
       end
       -- Determine closest wall edge using mover position
       if wall_obj.vertices and #wall_obj.vertices >= 8 then

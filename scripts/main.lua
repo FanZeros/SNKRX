@@ -111,7 +111,11 @@ function Start()
   --   - Sound/Image/Music loading (~90 sounds, ~60 images)
   --   - All game data tables (characters, classes, passives, levels)
   --   - Main state machine: main = Main() → MainMenu
-  init()
+  local ok, err = pcall(init)
+  if not ok then
+    print("[SNKRX] FATAL: init() failed: " .. tostring(err))
+    return
+  end
 
   print("[SNKRX] Game initialized successfully")
 
@@ -175,7 +179,7 @@ function HandleUpdate(eventType, eventData)
 
   -- Handle music looping
   if main_song_instance and main_song_instance:isStopped() then
-    main_song_instance = _G[random:table{'song1', 'song2', 'song3', 'song4', 'song5'}]:play{volume = 0.5}
+    main_song_instance = _G[random:table{'song1', 'song2', 'song3', 'song4', 'song5'}]:play{volume = main_song_volume or 0.5}
   end
 end
 

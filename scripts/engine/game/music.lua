@@ -12,6 +12,9 @@ function Music:init(filename)
   self.volume = 0.5
   self.pitch = 1.0
   self.resource = cache:GetResource("Sound", filename)
+  if not self.resource then
+    print(string.format("[Music] WARN: cache:GetResource returned nil for '%s'", filename))
+  end
   if self.resource then
     self.resource:SetLooped(true)
   end
@@ -32,7 +35,7 @@ function Music:play(volume_or_args)
   end
   self.volume = vol
 
-  if self.resource then
+  if self.resource and scene_ then
     -- Stop previous if playing
     self:stop()
 

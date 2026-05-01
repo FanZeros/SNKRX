@@ -3,22 +3,33 @@
 
 Image = Object:extend()
 function Image:init(asset_name)
-  -- Load image via NanoVG
-  local img_path = "images/" .. asset_name .. ".png"
-  self.nvg_image = nvgCreateImage(vg, img_path, 0)
-  if self.nvg_image <= 0 then
-    -- Try alternate path
-    img_path = "Images/" .. asset_name .. ".png"
-    self.nvg_image = nvgCreateImage(vg, img_path, 0)
+  self.w = 0
+  self.h = 0
+  self.nvg_image = 0
+  if not vg then
+    print("[Image] WARNING: vg is nil, cannot load image: " .. tostring(asset_name))
+    return
+  end
+  -- Load image via NanoVG, try multiple paths
+  local paths = {
+    "images/" .. asset_name .. ".png",
+    "Images/" .. asset_name .. ".png",
+  }
+  for _, img_path in ipairs(paths) do
+    local ok, result = pcall(nvgCreateImage, vg, img_path, 0)
+    if ok and result and result > 0 then
+      self.nvg_image = result
+      break
+    end
   end
   -- Query image dimensions
   if self.nvg_image > 0 then
-    local iw, ih = nvgImageSize(vg, self.nvg_image)
-    self.w = iw
-    self.h = ih
+    local ok, iw, ih = pcall(nvgImageSize, vg, self.nvg_image)
+    if ok and iw then
+      self.w = iw
+      self.h = ih
+    end
   else
-    self.w = 0
-    self.h = 0
     print("[Image] WARNING: Failed to load image: " .. asset_name)
   end
 end

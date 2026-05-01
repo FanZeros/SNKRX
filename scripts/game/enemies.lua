@@ -401,6 +401,7 @@ function Seeker:on_collision_enter(other, contact)
     if cur_player and cur_player.fracture then
       if self.being_pushed then
         trigger:after(0.01, function()
+          if not main.current.main or not main.current.main.world then return end
           earth2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
           for i = 1, 6 do
             Projectile{group = main.current.main, x = self.x, y = self.y, color = red[0], r = (i-1)*math.pi/3, v = 200, dmg = 30, parent = cur_player, pierce = 1}
@@ -467,8 +468,7 @@ function Seeker:hit(damage, projectile, dot, from_enemy)
         cx = cx + unit.x
         cy = cy + unit.y
       end
-      cx = cx/#units
-      cy = cy/#units
+      if #units > 0 then cx = cx/#units; cy = cy/#units end
       self:push(random:float(30, 60), projectile and projectile.r or self:angle_from_point(cx, cy))
     end
   end
@@ -521,6 +521,7 @@ function Seeker:hit(damage, projectile, dot, from_enemy)
   if projectile and projectile.spawn_critters_on_hit then
     critter1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
     trigger:after(0.01, function()
+      if not main.current.main or not main.current.main.world then return end
       for i = 1, projectile.spawn_critters_on_hit do
         Critter{group = main.current.main, x = self.x, y = self.y, color = orange[0], r = random:float(0, 2*math.pi), v = 10, dmg = projectile.parent.dmg, parent = projectile.parent}
       end
@@ -605,6 +606,7 @@ function Seeker:hit(damage, projectile, dot, from_enemy)
 
     if projectile and projectile.spawn_critters_on_kill then
       trigger:after(0.01, function()
+        if not main.current.main or not main.current.main.world then return end
         critter1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
         for i = 1, projectile.spawn_critters_on_kill do
           Critter{group = main.current.main, x = self.x, y = self.y, color = orange[0], r = random:float(0, 2*math.pi), v = 5, dmg = projectile.parent.dmg, parent = projectile.parent}
@@ -615,6 +617,7 @@ function Seeker:hit(damage, projectile, dot, from_enemy)
     if self.infested then
       critter1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
       trigger:after(0.01, function()
+        if not main.current.main or not main.current.main.world then return end
         if type(self.infested) == 'number' then
           for i = 1, self.infested do
             Critter{group = main.current.main, x = self.x, y = self.y, color = orange[0], r = random:float(0, 2*math.pi), v = 10, dmg = self.infested_dmg, parent = self.infested_ref}
@@ -625,6 +628,7 @@ function Seeker:hit(damage, projectile, dot, from_enemy)
 
     if self.jester_cursed then
       trigger:after(0.01, function()
+        if not main.current.main or not main.current.main.world then return end
         if tostring(self.x) == tostring(0/0) or tostring(self.y) == tostring(0/0) then return end
         _G[random:table{'scout1', 'scout2'}]:play{pitch = random:float(0.95, 1.05), volume = 0.35}
         HitCircle{group = main.current.effects, x = self.x, y = self.y, rs = 6}
@@ -640,6 +644,7 @@ function Seeker:hit(damage, projectile, dot, from_enemy)
 
     if self.bane_cursed then
       trigger:after(0.01, function()
+        if not main.current.main or not main.current.main.world then return end
         DotArea{group = main.current.effects, x = self.x, y = self.y, rs = (self.bane_ref.level == 3 and 2 or 1)*self.bane_ref.area_size_m*27, color = purple[0],
           dmg = self.bane_ref.area_dmg_m*self.bane_ref.dmg*(self.bane_ref.dot_dmg_m or 1), void_rift = true, duration = 1}
       end)

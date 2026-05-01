@@ -22,11 +22,13 @@ local M = {}
 -- ============================================================================
 -- Design resolution (same as original SNKRX)
 -- ============================================================================
-gw = 480
-gh = 270
+dgw = 480  -- design width  (fixed, for arena/UI positioning)
+dgh = 270  -- design height (fixed, for arena/UI positioning)
+gw = 480   -- viewport width  (dynamic, recalculated to fill screen)
+gh = 270   -- viewport height (dynamic, recalculated to fill screen)
 sx = 1
 sy = 1
-screen_ox = 0  -- offset for letterboxing/pillarboxing (in logical pixels)
+screen_ox = 0
 screen_oy = 0
 time = 0
 refresh_rate = 60
@@ -143,26 +145,37 @@ function M.init(nvg_ctx)
     -- Store NanoVG context globally (all engine modules reference 'vg')
     vg = nvg_ctx
 
-    -- Calculate scale factors from physical screen to design resolution
+    -- Calculate dynamic viewport to fill screen without stretching
     local physW = urho_graphics:GetWidth()
     local physH = urho_graphics:GetHeight()
     local dpr = urho_graphics:GetDPR()
     local logW = physW / dpr
     local logH = physH / dpr
 
-    -- Uniform scaling: use min to avoid stretching, center with offset
-    local scale = math.min(logW / gw, logH / gh)
+    -- Dynamic viewport: expand gw/gh to fill the entire screen (no letterbox)
+    local screenAspect = logW / logH
+    local designAspect = dgw / dgh  -- 480/270 = 16/9
+    if screenAspect >= designAspect then
+        -- Screen is wider than or equal to 16:9: fix height, expand width
+        gh = dgh
+        gw = math.ceil(dgh * screenAspect)
+    else
+        -- Screen is narrower than 16:9: fix width, expand height
+        gw = dgw
+        gh = math.ceil(dgw / screenAspect)
+    end
+    local scale = logW / gw
     sx = scale
     sy = scale
-    screen_ox = (logW - gw * scale) / 2
-    screen_oy = (logH - gh * scale) / 2
+    screen_ox = 0
+    screen_oy = 0
 
     print(string.format("[Engine] Screen: %dx%d (logical: %.0fx%.0f, DPR: %.1f)", physW, physH, logW, logH, dpr))
-    print(string.format("[Engine] Design: %dx%d, Scale: %.2f, Offset: %.1f, %.1f", gw, gh, scale, screen_ox, screen_oy))
+    print(string.format("[Engine] Design: %dx%d, Viewport: %dx%d, Scale: %.2f", dgw, dgh, gw, gh, scale))
 
     -- Create global singleton instances
     random = Random()
-    camera = Camera(gw / 2, gh / 2, gw, gh)
+    camera = Camera(dgw / 2, dgh / 2, gw, gh)
 
     -- Create the SNKRX Graphics manager (overwrites UrhoX's graphics global)
     -- This is intentional — the engine adapter layer manages its own layer system
@@ -216,11 +229,20 @@ function M.recalculate_scale()
     local dpr = urho_graphics:GetDPR()
     local logW = physW / dpr
     local logH = physH / dpr
-    local scale = math.min(logW / gw, logH / gh)
+    local screenAspect = logW / logH
+    local designAspect = dgw / dgh
+    if screenAspect >= designAspect then
+        gh = dgh
+        gw = math.ceil(dgh * screenAspect)
+    else
+        gw = dgw
+        gh = math.ceil(dgw / screenAspect)
+    end
+    local scale = logW / gw
     sx = scale
     sy = scale
-    screen_ox = (logW - gw * scale) / 2
-    screen_oy = (logH - gh * scale) / 2
+    screen_ox = 0
+    screen_oy = 0
 end
 
 return M

@@ -5,32 +5,73 @@ Font = Object:extend()
 function Font:init(asset_name, font_size)
   self.size = font_size or 16
   self.name = asset_name
-  -- NanoVG font creation: nvgCreateFont(ctx, name, path)
-  -- Asset path follows SNKRX convention: "assets/fonts/<name>.ttf"
-  -- In UrhoX, resources are loaded relative to resource path, so we use "Fonts/<name>.ttf" as fallback
-  local font_path = "fonts/" .. asset_name .. ".ttf"
-  self.font_id = nvgCreateFont(vg, asset_name, font_path)
-  if self.font_id < 0 then
-    -- Try alternate path with uppercase
-    font_path = "Fonts/" .. asset_name .. ".ttf"
-    self.font_id = nvgCreateFont(vg, asset_name .. "_alt", font_path)
+  self.h = math.ceil((font_size or 16) * 1.2)
+  if not vg then
+    print(string.format("[Font] WARNING: vg is nil, cannot create font: %s", tostring(asset_name)))
+    self.font_id = -1
+    return
   end
-  if self.font_id < 0 then
-    -- Try MiSans as fallback
-    font_path = "Fonts/MiSans-Regular.ttf"
-    self.font_id = nvgCreateFont(vg, asset_name .. "_fallback", font_path)
-    print(string.format("[Font] FALLBACK for '%s' -> MiSans, id=%d", asset_name, self.font_id))
-  else
-    print(string.format("[Font] Loaded '%s' from '%s', id=%d, size=%d", asset_name, font_path, self.font_id, font_size))
+
+  -- Try multiple paths to find the font file
+  local paths = {
+    "fonts/" .. asset_name .. ".ttf",
+    "Fonts/" .. asset_name .. ".ttf",
+    "fonts/" .. asset_name .. ".otf",
+    "Fonts/" .. asset_name .. ".otf",
+  }
+  for i, font_path in ipairs(paths) do
+    local tag = asset_name .. (i > 1 and ("_p" .. i) or "")
+    self.font_id = nvgCreateFont(vg, tag, font_path)
+    if self.font_id >= 0 then
+      print(string.format("[Font] Loaded '%s' from '%s', id=%d, size=%d", asset_name, font_path, self.font_id, font_size))
+      return
+    end
   end
-  -- Approximate line height (NanoVG doesn't have a direct getHeight equivalent)
-  -- We use font_size * 1.2 as a reasonable approximation
-  self.h = math.ceil(font_size * 1.2)
+
+  -- Fallback: use engine built-in MiSans font (always available)
+  self._is_fallback = true  -- mark as fallback so retry can be attempted later
+  self._asset_name = asset_name
+  self.font_id = nvgCreateFont(vg, asset_name .. "_misans", "Fonts/MiSans-Regular.ttf")
+  if self.font_id >= 0 then
+    print(string.format("[Font] FALLBACK for '%s' -> MiSans-Regular, id=%d", asset_name, self.font_id))
+    return
+  end
+
+  -- Last resort: try any previously loaded font (id=0)
+  print(string.format("[Font] ERROR: no font available for '%s', using id=0", asset_name))
+  self.font_id = 0
+end
+
+
+--- Retry loading the original font (called after DWP may have finished downloading).
+--- Returns true if successfully reloaded from original asset.
+function Font:try_reload()
+  if not self._is_fallback or not self._asset_name or not vg then return false end
+  local asset_name = self._asset_name
+  local paths = {
+    "fonts/" .. asset_name .. ".ttf",
+    "Fonts/" .. asset_name .. ".ttf",
+    "fonts/" .. asset_name .. ".otf",
+    "Fonts/" .. asset_name .. ".otf",
+  }
+  for i, font_path in ipairs(paths) do
+    local tag = asset_name .. "_retry" .. i
+    local fid = nvgCreateFont(vg, tag, font_path)
+    if fid >= 0 then
+      self.font_id = fid
+      self._is_fallback = false
+      print(string.format("[Font] RELOAD OK for '%s' from '%s', id=%d", asset_name, font_path, fid))
+      return true
+    end
+  end
+  print(string.format("[Font] RELOAD FAILED for '%s', still using fallback", asset_name))
+  return false
 end
 
 
 function Font:get_text_width(text)
   if not text or text == "" then return 0 end
+  if not vg or self.font_id < 0 then return #tostring(text) * self.size * 0.5 end
   nvgFontFaceId(vg, self.font_id)
   nvgFontSize(vg, self.size)
   -- nvgTextBounds returns advance width (only works inside nvgBeginFrame/nvgEndFrame)

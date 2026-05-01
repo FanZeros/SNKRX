@@ -9,9 +9,11 @@
 function init()
   shared_init()
 
+
   input:bind('move_left', {'a', 'left', 'dpleft', 'm1'})
   input:bind('move_right', {'d', 'e', 's', 'right', 'dpright', 'm2'})
   input:bind('enter', {'space', 'return', 'fleft', 'fdown', 'fright'})
+
 
   local s = {tags = {sfx}}
   artificer1 = Sound('458586__inspectorj__ui-mechanical-notification-01-fx.ogg', s)
@@ -122,6 +124,7 @@ function init()
   song5 = Sound('Kubbi - Ember - 05 Compass.ogg', {tags = {music}})
   death_song = Sound('Kubbi - Ember - 09 Formed by Glaciers.ogg', {tags = {music}})
 
+
   lock_image = Image('lock')
   speed_booster_elite = Image('speed_booster_elite')
   exploder_elite = Image('exploder_elite')
@@ -230,6 +233,7 @@ function init()
   psycholeak = Image('psycholeak')
   divine_blessing = Image('divine_blessing')
   hardening = Image('hardening')
+
 
   class_colors = {
     ['warrior'] = yellow[0],
@@ -347,6 +351,7 @@ function init()
     ['gambler'] = '赌徒',
     ['thief'] = '盗贼',
   }
+
 
   character_colors = {
     ['vagrant'] = fg[0],
@@ -529,62 +534,62 @@ function init()
   }
 
   character_class_strings = {
-    ['vagrant'] = '[fg]探索者, 灵能',
+    ['vagrant'] = '[fg]探索者, [fg]灵能师',
     ['swordsman'] = '[yellow]战士',
-    ['wizard'] = '[blue]法师, [red]核爆',
+    ['wizard'] = '[blue]法师, [red]爆破手',
     ['magician'] = '[blue]法师',
     ['archer'] = '[green]游侠',
     ['scout'] = '[red]盗贼',
-    ['cleric'] = '[green]治疗',
+    ['cleric'] = '[green]治愈师',
     ['outlaw'] = '[yellow]战士, [red]盗贼',
-    ['blade'] = '[yellow]战士, [red]核爆',
-    ['elementor'] = '[blue]法师, [red]核爆',
-    -- ['saboteur'] = '[red]盗贼, [orange]建造, [red]核爆',
-    ['bomber'] = '[red]核爆, [orange]建造',
-    ['stormweaver'] = '[blue]附魔',
-    ['sage'] = '[red]核爆, [yellow]力场',
-    ['squire'] = '[yellow]战士, [blue]附魔',
-    ['cannoneer'] = '[green]游侠, [red]核爆',
+    ['blade'] = '[yellow]战士, [red]爆破手',
+    ['elementor'] = '[blue]法师, [red]爆破手',
+    -- ['saboteur'] = '[red]盗贼, [orange]构造师, [red]爆破手',
+    ['bomber'] = '[red]爆破手, [orange]构造师',
+    ['stormweaver'] = '[blue]附魔师',
+    ['sage'] = '[red]爆破手, [yellow]力场师',
+    ['squire'] = '[yellow]战士, [blue]附魔师',
+    ['cannoneer'] = '[green]游侠, [red]爆破手',
     ['dual_gunner'] = '[green]游侠, [red]盗贼',
-    -- ['hunter'] = '[green]游侠, [orange]建造, [yellow]力场',
-    ['sentry'] = '[green]游侠, [orange]建造',
-    ['chronomancer'] = '[blue]法师, 附魔',
+    -- ['hunter'] = '[green]游侠, [orange]构造师, [yellow]力场师',
+    ['sentry'] = '[green]游侠, [orange]构造师',
+    ['chronomancer'] = '[blue]法师, [blue]附魔师',
     ['spellblade'] = '[blue]法师, [red]盗贼',
-    ['psykeeper'] = '[green]治疗, [fg]灵能',
-    ['engineer'] = '[orange]建造',
-    ['plague_doctor'] = '[red]核爆, [purple]虚空',
-    ['barbarian'] = '[purple]诅咒, [yellow]战士',
-    ['juggernaut'] = '[yellow]力场, 战士',
+    ['psykeeper'] = '[green]治愈师, [fg]灵能师',
+    ['engineer'] = '[orange]构造师',
+    ['plague_doctor'] = '[red]爆破手, [purple]虚空使',
+    ['barbarian'] = '[purple]诅咒师, [yellow]战士',
+    ['juggernaut'] = '[yellow]力场师, [yellow]战士',
     ['lich'] = '[blue]法师',
-    ['cryomancer'] = '[blue]法师, [purple]虚空',
-    ['pyromancer'] = '[blue]法师, [red]核爆, [purple]虚空',
-    ['corruptor'] = '[green]游侠, [orange]虫群',
-    ['beastmaster'] = '[red]盗贼, [orange]虫群',
-    ['launcher'] = '[yellow]力场, [purple]诅咒',
-    ['jester'] = '[purple]诅咒, [red]盗贼',
-    ['assassin'] = '[red]盗贼, [purple]虚空',
-    ['host'] = '[orange]虫群',
-    ['carver'] = '[orange]建造, [green]治疗',
-    ['bane'] = '[purple]诅咒, 虚空',
-    ['psykino'] = '[blue]法师, [fg]灵能, [yellow]力场',
-    ['barrager'] = '[green]游侠, [yellow]力场',
+    ['cryomancer'] = '[blue]法师, [purple]虚空使',
+    ['pyromancer'] = '[blue]法师, [red]爆破手, [purple]虚空使',
+    ['corruptor'] = '[green]游侠, [orange]虫群师',
+    ['beastmaster'] = '[red]盗贼, [orange]虫群师',
+    ['launcher'] = '[yellow]力场师, [purple]诅咒师',
+    ['jester'] = '[purple]诅咒师, [red]盗贼',
+    ['assassin'] = '[red]盗贼, [purple]虚空使',
+    ['host'] = '[orange]虫群师',
+    ['carver'] = '[orange]构造师, [green]治愈师',
+    ['bane'] = '[purple]诅咒师, [purple]虚空使',
+    ['psykino'] = '[blue]法师, [fg]灵能师, [yellow]力场师',
+    ['barrager'] = '[green]游侠, [yellow]力场师',
     ['highlander'] = '[yellow]战士',
-    ['fairy'] = '[blue]附魔, [green]治疗',
-    ['priest'] = '[green]治疗',
-    ['infestor'] = '[purple]诅咒, [orange]虫群',
-    ['flagellant'] = '[fg]灵能, [blue]附魔',
-    ['arcanist'] = '[blue2]巫师',
-    -- ['illusionist'] = '[blue2]巫师, [orange]建造',
-    ['artificer'] = '[blue2]巫师, [orange]建造',
-    ['witch'] = '[blue2]巫师, [purple]虚空',
-    ['silencer'] = '[blue2]巫师, [purple]诅咒',
-    ['vulcanist'] = '[blue2]巫师, [red]核爆',
-    ['warden'] = '[blue2]巫师, [yellow]力场',
-    ['psychic'] = '[blue2]巫师, [fg]灵能',
+    ['fairy'] = '[blue]附魔师, [green]治愈师',
+    ['priest'] = '[green]治愈师',
+    ['infestor'] = '[purple]诅咒师, [orange]虫群师',
+    ['flagellant'] = '[fg]灵能师, [blue]附魔师',
+    ['arcanist'] = '[blue2]术士',
+    -- ['illusionist'] = '[blue2]术士, [orange]构造师',
+    ['artificer'] = '[blue2]术士, [orange]构造师',
+    ['witch'] = '[blue2]术士, [purple]虚空使',
+    ['silencer'] = '[blue2]术士, [purple]诅咒师',
+    ['vulcanist'] = '[blue2]术士, [red]爆破手',
+    ['warden'] = '[blue2]术士, [yellow]力场师',
+    ['psychic'] = '[blue2]术士, [fg]灵能师',
     ['miner'] = '[yellow2]佣兵',
     ['merchant'] = '[yellow2]佣兵',
-    ['usurer'] = '[purple]诅咒, [yellow2]佣兵, [purple]虚空',
-    ['gambler'] = '[yellow2]佣兵, [blue2]巫师',
+    ['usurer'] = '[purple]诅咒师, [yellow2]佣兵, [purple]虚空使',
+    ['gambler'] = '[yellow2]佣兵, [blue2]术士',
     ['thief'] = '[red]盗贼, [yellow2]佣兵',
   }
 
@@ -602,6 +607,7 @@ function init()
     player:update(0)
     return math.round(player[stat], 2)
   end
+
 
   character_descriptions = {
     ['vagrant'] = function(lvl) return '[fg]发射一枚弹射物，造成[yellow]' .. get_character_stat('vagrant', lvl, 'dmg') .. '[fg]点伤害' end,
@@ -965,6 +971,7 @@ function init()
     ['thief'] = function(lvl) return get_character_stat_string('thief', lvl) end,
   }
 
+
   class_stat_multipliers = {
     ['ranger'] = {hp = 1, dmg = 1.2, aspd = 1.5, area_dmg = 1, area_size = 1, def = 0.9, mvspd = 1.2},
     ['warrior'] = {hp = 1.4, dmg = 1.1, aspd = 0.9, area_dmg = 1, area_size = 1, def = 1.25, mvspd = 0.9},
@@ -1010,15 +1017,15 @@ function init()
     ['rogue'] = function(lvl) return '[' .. ylb1(lvl) .. ']3[light_bg]/[' .. ylb2(lvl) .. ']6 [fg]- 友方盗贼有[' .. ylb1(lvl) .. ']15%[light_bg]/[' .. ylb2(lvl) .. ']30%[fg]暴击几率，造成[yellow]4倍[]伤害' end,
     ['healer'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 生成治疗球时有[' .. ylb1(lvl) .. ']+15%[light_bg]/[' .. ylb2(lvl) .. ']+30%[fg]几率额外生成[yellow]+1[fg]个治疗球' end,
     ['enchanter'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 所有友军伤害[' .. ylb1(lvl) .. ']+15%[light_bg]/[' .. ylb2(lvl) .. ']+25%' end,
-    ['nuker'] = function(lvl) return '[' .. ylb1(lvl) .. ']3[light_bg]/[' .. ylb2(lvl) .. ']6 [fg]- 友方核爆范围伤害和范围[' .. ylb1(lvl) .. ']+15%[light_bg]/[' .. ylb2(lvl) .. ']+25%' end,
+    ['nuker'] = function(lvl) return '[' .. ylb1(lvl) .. ']3[light_bg]/[' .. ylb2(lvl) .. ']6 [fg]- 友方爆破手范围伤害和范围[' .. ylb1(lvl) .. ']+15%[light_bg]/[' .. ylb2(lvl) .. ']+25%' end,
     ['conjurer'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 构造物伤害和持续时间[' .. ylb1(lvl) .. ']+25%[light_bg]/[' .. ylb2(lvl) .. ']+50%' end,
-    ['psyker'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 灵能球总数[' .. ylb1(lvl) .. ']+2[light_bg]/[' .. ylb2(lvl) .. ']+4[fg]，每个灵能者额外[yellow]+1[fg]个球' end,
-    ['curser'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 友方诅咒者最大诅咒目标[' .. ylb1(lvl) .. ']+1[light_bg]/[' .. ylb2(lvl) .. ']+3' end,
+    ['psyker'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 灵能球总数[' .. ylb1(lvl) .. ']+2[light_bg]/[' .. ylb2(lvl) .. ']+4[fg]，每个灵能师额外[yellow]+1[fg]个球' end,
+    ['curser'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 友方诅咒师最大诅咒目标[' .. ylb1(lvl) .. ']+1[light_bg]/[' .. ylb2(lvl) .. ']+3' end,
     ['forcer'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 所有友军击退力[' .. ylb1(lvl) .. ']+25%[light_bg]/[' .. ylb2(lvl) .. ']+50%' end,
     ['swarmer'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 仆从生命[' .. ylb1(lvl) .. ']+1[light_bg]/[' .. ylb2(lvl) .. ']+3' end,
-    ['voider'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 友方虚空持续伤害[' .. ylb1(lvl) .. ']+20%[light_bg]/[' .. ylb2(lvl) .. ']+40%' end,
+    ['voider'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 友方虚空使持续伤害[' .. ylb1(lvl) .. ']+20%[light_bg]/[' .. ylb2(lvl) .. ']+40%' end,
     ['sorcerer'] = function(lvl) 
-      return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4[light_bg]/[' .. ylb3(lvl) .. ']6 [fg]- 巫师每[' .. 
+      return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4[light_bg]/[' .. ylb3(lvl) .. ']6 [fg]- 术士每[' .. 
         ylb1(lvl) .. ']4[light_bg]/[' .. ylb2(lvl) .. ']3[light_bg]/[' .. ylb3(lvl) .. ']2[fg]次攻击重复一次攻击'
     end,
     ['mercenary'] = function(lvl) return '[' .. ylb1(lvl) .. ']2[light_bg]/[' .. ylb2(lvl) .. ']4 [fg]- 敌人死亡时有[' .. ylb1(lvl) .. ']+8%[light_bg]/[' .. ylb2(lvl) .. ']+16%[fg]几率掉落金币' end,
@@ -1500,6 +1507,7 @@ function init()
     [25] = {0, 0, 0, 100},
   }
 
+
   level_to_gold_gained = {
     [1] = {3, 3},
     [2] = {3, 3},
@@ -1537,6 +1545,7 @@ function init()
     end
     level_to_gold_gained[i] = {level_to_gold_gained[n][1]*k, level_to_gold_gained[n][2]*k}
   end
+
 
   level_to_elite_spawn_weights = {
     [1] = {0},
@@ -1719,9 +1728,11 @@ function init()
   if not state.current_new_game_plus then state.current_new_game_plus = current_new_game_plus end
   max_units = math.clamp(7 + current_new_game_plus, 7, 12)
 
-  main_song_instance = _G[random:table{'song1', 'song2', 'song3', 'song4', 'song5'}]:play{volume = 0.5}
-  main = Main()
+  main_song_volume = 0.5
+  local song_name = random:table{'song1', 'song2', 'song3', 'song4', 'song5'}
+  main_song_instance = _G[song_name]:play{volume = 0.5}
 
+  main = Main()
   main:add(MainMenu'mainmenu')
   main:go_to('mainmenu')
 
@@ -1850,30 +1861,27 @@ end
 
 
 function draw()
+  local hide = main.current and main.current:is(BuyScreen)
   shared_draw(function()
     main:draw()
-  end)
+  end, hide and {hide_board = true} or nil)
 end
 
 
 function open_options(self)
   input:set_mouse_visible(true)
-  trigger:tween(0.25, _G, {slow_amount = 0}, math.linear, function()
-    slow_amount = 0
-    self.paused = true
+  self.paused = true
 
-    if self:is(Arena) then
+  if self:is(Arena) then
       self.paused_t1 = Text2{group = self.ui, x = gw/2, y = gh/2 - 108, sx = 0.6, sy = 0.6, lines = {{text = '[bg10]点击左侧              点击右侧', font = fat_font, alignment = 'center'}}}
       self.paused_t2 = Text2{group = self.ui, x = gw/2, y = gh/2 - 92, lines = {{text = '[bg10]左转                                            右转', font = pixul_font, alignment = 'center'}}}
     end
 
     if self:is(MainMenu) then
-      self.ng_t = Text2{group = self.ui, x = gw/2 + 63, y = gh - 50, lines = {{text = '[bg10]current: ' .. current_new_game_plus, font = pixul_font, alignment = 'center'}}}
+      self.ng_t = Text2{group = self.ui, x = gw/2 + 63, y = gh - 50, lines = {{text = '[bg10]当前难度: ' .. current_new_game_plus, font = pixul_font, alignment = 'center'}}}
     end
 
-    self.resume_button = Button{group = self.ui, x = gw/2, y = gh - 225, force_update = true, button_text = self:is(MainMenu) and 'main menu (esc)' or 'resume game (esc)', fg_color = 'bg10', bg_color = 'bg', action = function(b)
-      trigger:tween(0.25, _G, {slow_amount = 1}, math.linear, function()
-        slow_amount = 1
+    self.resume_button = Button{group = self.ui, x = gw/2, y = gh - 225, force_update = true, button_text = self:is(MainMenu) and '主菜单' or '继续游戏', fg_color = 'bg10', bg_color = 'bg', action = function(b)
         self.paused = false
         if self.paused_t1 then self.paused_t1.dead = true; self.paused_t1 = nil end
         if self.paused_t2 then self.paused_t2.dead = true; self.paused_t2 = nil end
@@ -1895,11 +1903,10 @@ function open_options(self)
         system.save_state()
         if self:is(MainMenu) or self:is(BuyScreen) then input:set_mouse_visible(true)
         elseif self:is(Arena) then input:set_mouse_visible(state.mouse_control or false) end
-      end, 'pause')
     end}
 
     if not self:is(MainMenu) then
-      self.restart_button = Button{group = self.ui, x = gw/2, y = gh - 200, force_update = true, button_text = 'restart run (r)', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+      self.restart_button = Button{group = self.ui, x = gw/2, y = gh - 200, force_update = true, button_text = '重新开始 (r)', fg_color = 'bg10', bg_color = 'bg', action = function(b)
         self.transitioning = true
         ui_transition2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
         ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
@@ -1910,7 +1917,7 @@ function open_options(self)
           run_time = 0
           gold = 3
           passives = {}
-          main_song_instance:stop()
+          if main_song_instance then main_song_instance:stop() end
           run_passive_pool = {
             'centipede', 'ouroboros_technique_r', 'ouroboros_technique_l', 'amplify', 'resonance', 'ballista', 'call_of_the_void', 'crucio', 'speed_3', 'damage_4', 'shoot_5', 'death_6', 'lasting_7',
             'defensive_stance', 'offensive_stance', 'kinetic_bomb', 'porcupine_technique', 'last_stand', 'seeping', 'deceleration', 'annihilation', 'malediction', 'hextouch', 'whispers_of_doom',
@@ -1925,32 +1932,32 @@ function open_options(self)
           locked_state = nil
           system.save_run()
           main:go_to('buy_screen', 1, 0, {}, passives, 1, 0)
-        end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']restarting...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
+        end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']重新开始中...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
       end}
     end
 
-    self.mouse_button = Button{group = self.ui, x = gw/2 - 113, y = gh - 150, force_update = true, button_text = 'mouse control: ' .. tostring(state.mouse_control and 'yes' or 'no'), fg_color = 'bg10', bg_color = 'bg',
+    self.mouse_button = Button{group = self.ui, x = gw/2 - 113, y = gh - 150, force_update = true, button_text = '鼠标控制: ' .. tostring(state.mouse_control and '是' or '否'), fg_color = 'bg10', bg_color = 'bg',
     action = function(b)
       ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
       state.mouse_control = not state.mouse_control
-      b:set_text('mouse control: ' .. tostring(state.mouse_control and 'yes' or 'no'))
+      b:set_text('鼠标控制: ' .. tostring(state.mouse_control and '是' or '否'))
     end}
 
-    self.dark_transition_button = Button{group = self.ui, x = gw/2 + 13, y = gh - 150, force_update = true, button_text = 'dark transitions: ' .. tostring(state.dark_transitions and 'yes' or 'no'),
+    self.dark_transition_button = Button{group = self.ui, x = gw/2 + 13, y = gh - 150, force_update = true, button_text = '暗色过渡: ' .. tostring(state.dark_transitions and '是' or '否'),
     fg_color = 'bg10', bg_color = 'bg', action = function(b)
       ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
       state.dark_transitions = not state.dark_transitions
-      b:set_text('dark transitions: ' .. tostring(state.dark_transitions and 'yes' or 'no'))
+      b:set_text('暗色过渡: ' .. tostring(state.dark_transitions and '是' or '否'))
     end}
 
-    self.run_timer_button = Button{group = self.ui, x = gw/2 + 121, y = gh - 150, force_update = true, button_text = 'run timer: ' .. tostring(state.run_timer and 'yes' or 'no'), fg_color = 'bg10', bg_color = 'bg',
+    self.run_timer_button = Button{group = self.ui, x = gw/2 + 121, y = gh - 150, force_update = true, button_text = '计时器: ' .. tostring(state.run_timer and '是' or '否'), fg_color = 'bg10', bg_color = 'bg',
     action = function(b)
       ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
       state.run_timer = not state.run_timer
-      b:set_text('run timer: ' .. tostring(state.run_timer and 'yes' or 'no'))
+      b:set_text('计时器: ' .. tostring(state.run_timer and '是' or '否'))
     end}
 
-    self.sfx_button = Button{group = self.ui, x = gw/2 - 46, y = gh - 175, force_update = true, button_text = 'sfx volume: ' .. tostring((state.sfx_volume or 0.5)*10), fg_color = 'bg10', bg_color = 'bg',
+    self.sfx_button = Button{group = self.ui, x = gw/2 - 46, y = gh - 175, force_update = true, button_text = '音效音量: ' .. tostring((state.sfx_volume or 0.5)*10), fg_color = 'bg10', bg_color = 'bg',
     action = function(b)
       ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
       b.spring:pull(0.2, 200, 10)
@@ -1959,7 +1966,7 @@ function open_options(self)
       sfx.volume = sfx.volume + 0.1
       if sfx.volume > 1 then sfx.volume = 0 end
       state.sfx_volume = sfx.volume
-      b:set_text('sfx volume: ' .. tostring((state.sfx_volume or 0.5)*10))
+      b:set_text('音效音量: ' .. tostring((state.sfx_volume or 0.5)*10))
     end,
     action_2 = function(b)
       ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
@@ -1970,10 +1977,10 @@ function open_options(self)
       if math.abs(sfx.volume) < 0.001 and sfx.volume > 0 then sfx.volume = 0 end
       if sfx.volume < 0 then sfx.volume = 1 end
       state.sfx_volume = sfx.volume
-      b:set_text('sfx volume: ' .. tostring((state.sfx_volume or 0.5)*10))
+      b:set_text('音效音量: ' .. tostring((state.sfx_volume or 0.5)*10))
     end}
 
-    self.music_button = Button{group = self.ui, x = gw/2 + 48, y = gh - 175, force_update = true, button_text = 'music volume: ' .. tostring((state.music_volume or 0.5)*10), fg_color = 'bg10', bg_color = 'bg',
+    self.music_button = Button{group = self.ui, x = gw/2 + 48, y = gh - 175, force_update = true, button_text = '音乐音量: ' .. tostring((state.music_volume or 0.5)*10), fg_color = 'bg10', bg_color = 'bg',
     action = function(b)
       ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
       b.spring:pull(0.2, 200, 10)
@@ -1982,7 +1989,7 @@ function open_options(self)
       music.volume = music.volume + 0.1
       if music.volume > 1 then music.volume = 0 end
       state.music_volume = music.volume
-      b:set_text('music volume: ' .. tostring((state.music_volume or 0.5)*10))
+      b:set_text('音乐音量: ' .. tostring((state.music_volume or 0.5)*10))
     end,
     action_2 = function(b)
       ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
@@ -1993,67 +2000,67 @@ function open_options(self)
       if math.abs(music.volume) < 0.001 and music.volume > 0 then music.volume = 0 end
       if music.volume < 0 then music.volume = 1 end
       state.music_volume = music.volume
-      b:set_text('music volume: ' .. tostring((state.music_volume or 0.5)*10))
+      b:set_text('音乐音量: ' .. tostring((state.music_volume or 0.5)*10))
     end}
 
-    self.screen_shake_button = Button{group = self.ui, x = gw/2 - 57, y = gh - 100, w = 110, force_update = true, button_text = '[bg10]screen shake: ' .. tostring(state.no_screen_shake and 'no' or 'yes'), 
+    self.screen_shake_button = Button{group = self.ui, x = gw/2 - 57, y = gh - 100, w = 110, force_update = true, button_text = '[bg10]屏幕震动: ' .. tostring(state.no_screen_shake and '否' or '是'), 
     fg_color = 'bg10', bg_color = 'bg', action = function(b)
       ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
       state.no_screen_shake = not state.no_screen_shake
-      b:set_text('screen shake: ' .. tostring(state.no_screen_shake and 'no' or 'yes'))
+      b:set_text('屏幕震动: ' .. tostring(state.no_screen_shake and '否' or '是'))
     end}
 
-    self.cooldown_snake_button = Button{group = self.ui, x = gw/2 + 75, y = gh - 100, w = 145, force_update = true, button_text = '[bg10]cooldowns on snake: ' .. tostring(state.cooldown_snake and 'yes' or 'no'), 
+    self.cooldown_snake_button = Button{group = self.ui, x = gw/2 + 75, y = gh - 100, w = 145, force_update = true, button_text = '[bg10]蛇身冷却: ' .. tostring(state.cooldown_snake and '是' or '否'), 
     fg_color = 'bg10', bg_color = 'bg', action = function(b)
       ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
       state.cooldown_snake = not state.cooldown_snake
-      b:set_text('cooldowns on snake: ' .. tostring(state.cooldown_snake and 'yes' or 'no'))
+      b:set_text('蛇身冷却: ' .. tostring(state.cooldown_snake and '是' or '否'))
     end}
 
-    self.arrow_snake_button = Button{group = self.ui, x = gw/2 + 65, y = gh - 75, w = 125, force_update = true, button_text = '[bg10]arrow on snake: ' .. tostring(state.arrow_snake and 'yes' or 'no'),
+    self.arrow_snake_button = Button{group = self.ui, x = gw/2 + 65, y = gh - 75, w = 125, force_update = true, button_text = '[bg10]蛇身箭头: ' .. tostring(state.arrow_snake and '是' or '否'),
     fg_color = 'bg10', bg_color = 'bg', action = function(b)
       ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
       state.arrow_snake = not state.arrow_snake
-      b:set_text('arrow on snake: ' .. tostring(state.arrow_snake and 'yes' or 'no'))
+      b:set_text('蛇身箭头: ' .. tostring(state.arrow_snake and '是' or '否'))
     end}
 
-    self.screen_movement_button = Button{group = self.ui, x = gw/2 - 69, y = gh - 75, w = 135, force_update = true, button_text = '[bg10]screen movement: ' .. tostring(state.no_screen_movement and 'no' or 'yes'), 
+    self.screen_movement_button = Button{group = self.ui, x = gw/2 - 69, y = gh - 75, w = 135, force_update = true, button_text = '[bg10]屏幕移动: ' .. tostring(state.no_screen_movement and '否' or '是'), 
     fg_color = 'bg10', bg_color = 'bg', action = function(b)
       ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
       state.no_screen_movement = not state.no_screen_movement
       if state.no_screen_movement then
-        camera.x, camera.y = gw/2, gh/2
+        camera.x, camera.y = dgw/2, dgh/2
         camera.r = 0
       end
-      b:set_text('screen movement: ' .. tostring(state.no_screen_movement and 'no' or 'yes'))
+      b:set_text('屏幕移动: ' .. tostring(state.no_screen_movement and '否' or '是'))
     end}
 
     if self:is(MainMenu) then
-      self.ng_plus_minus_button = Button{group = self.ui, x = gw/2 - 58, y = gh - 50, force_update = true, button_text = 'NG+ down', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+      self.ng_plus_minus_button = Button{group = self.ui, x = gw/2 - 58, y = gh - 50, force_update = true, button_text = '难度 -', fg_color = 'bg10', bg_color = 'bg', action = function(b)
         ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
         b.spring:pull(0.2, 200, 10)
         b.selected = true
         current_new_game_plus = math.clamp(current_new_game_plus - 1, 0, 5)
         state.current_new_game_plus = current_new_game_plus
-        self.ng_t.text:set_text({{text = '[bg10]current: ' .. current_new_game_plus, font = pixul_font, alignment = 'center'}})
+        self.ng_t.text:set_text({{text = '[bg10]当前难度: ' .. current_new_game_plus, font = pixul_font, alignment = 'center'}})
         max_units = 7 + current_new_game_plus
         system.save_run()
       end}
 
-      self.ng_plus_plus_button = Button{group = self.ui, x = gw/2 + 5, y = gh - 50, force_update = true, button_text = 'NG+ up', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+      self.ng_plus_plus_button = Button{group = self.ui, x = gw/2 + 5, y = gh - 50, force_update = true, button_text = '难度 +', fg_color = 'bg10', bg_color = 'bg', action = function(b)
         ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
         b.spring:pull(0.2, 200, 10)
         b.selected = true
         current_new_game_plus = math.clamp(current_new_game_plus + 1, 0, new_game_plus)
         state.current_new_game_plus = current_new_game_plus
-        self.ng_t.text:set_text({{text = '[bg10]current: ' .. current_new_game_plus, font = pixul_font, alignment = 'center'}})
+        self.ng_t.text:set_text({{text = '[bg10]当前难度: ' .. current_new_game_plus, font = pixul_font, alignment = 'center'}})
         max_units = 7 + current_new_game_plus
         system.save_run()
       end}
     end
 
     if not self:is(MainMenu) then
-      self.main_menu_button = Button{group = self.ui, x = gw/2, y = gh - 50, force_update = true, button_text = 'main menu', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+      self.main_menu_button = Button{group = self.ui, x = gw/2, y = gh - 50, force_update = true, button_text = '主菜单', fg_color = 'bg10', bg_color = 'bg', action = function(b)
         self.transitioning = true
         ui_transition2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
         ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
@@ -2064,36 +2071,31 @@ function open_options(self)
         end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']..', font = pixul_font, alignment = 'center'}}, global_text_tags)}
       end}
     end
-
-  end, 'pause')
 end
 
 
 function close_options(self)
-  trigger:tween(0.25, _G, {slow_amount = 1}, math.linear, function()
-    slow_amount = 1
-    self.paused = false
-    if self.paused_t1 then self.paused_t1.dead = true; self.paused_t1 = nil end
-    if self.paused_t2 then self.paused_t2.dead = true; self.paused_t2 = nil end
-    if self.ng_t then self.ng_t.dead = true; self.ng_t = nil end
-    if self.resume_button then self.resume_button.dead = true; self.resume_button = nil end
-    if self.restart_button then self.restart_button.dead = true; self.restart_button = nil end
-    if self.mouse_button then self.mouse_button.dead = true; self.mouse_button = nil end
-    if self.dark_transition_button then self.dark_transition_button.dead = true; self.dark_transition_button = nil end
-    if self.run_timer_button then self.run_timer_button.dead = true; self.run_timer_button = nil end
-    if self.sfx_button then self.sfx_button.dead = true; self.sfx_button = nil end
-    if self.music_button then self.music_button.dead = true; self.music_button = nil end
-    if self.screen_shake_button then self.screen_shake_button.dead = true; self.screen_shake_button = nil end
-    if self.screen_movement_button then self.screen_movement_button.dead = true; self.screen_movement_button = nil end
-    if self.cooldown_snake_button then self.cooldown_snake_button.dead = true; self.cooldown_snake_button = nil end
-    if self.arrow_snake_button then self.arrow_snake_button.dead = true; self.arrow_snake_button = nil end
-    if self.ng_plus_plus_button then self.ng_plus_plus_button.dead = true; self.ng_plus_plus_button = nil end
-    if self.ng_plus_minus_button then self.ng_plus_minus_button.dead = true; self.ng_plus_minus_button = nil end
-    if self.main_menu_button then self.main_menu_button.dead = true; self.main_menu_button = nil end
-    system.save_state()
-    if self:is(MainMenu) or self:is(BuyScreen) then input:set_mouse_visible(true)
-    elseif self:is(Arena) then input:set_mouse_visible(state.mouse_control or false) end
-  end, 'pause')
+  self.paused = false
+  if self.paused_t1 then self.paused_t1.dead = true; self.paused_t1 = nil end
+  if self.paused_t2 then self.paused_t2.dead = true; self.paused_t2 = nil end
+  if self.ng_t then self.ng_t.dead = true; self.ng_t = nil end
+  if self.resume_button then self.resume_button.dead = true; self.resume_button = nil end
+  if self.restart_button then self.restart_button.dead = true; self.restart_button = nil end
+  if self.mouse_button then self.mouse_button.dead = true; self.mouse_button = nil end
+  if self.dark_transition_button then self.dark_transition_button.dead = true; self.dark_transition_button = nil end
+  if self.run_timer_button then self.run_timer_button.dead = true; self.run_timer_button = nil end
+  if self.sfx_button then self.sfx_button.dead = true; self.sfx_button = nil end
+  if self.music_button then self.music_button.dead = true; self.music_button = nil end
+  if self.screen_shake_button then self.screen_shake_button.dead = true; self.screen_shake_button = nil end
+  if self.screen_movement_button then self.screen_movement_button.dead = true; self.screen_movement_button = nil end
+  if self.cooldown_snake_button then self.cooldown_snake_button.dead = true; self.cooldown_snake_button = nil end
+  if self.arrow_snake_button then self.arrow_snake_button.dead = true; self.arrow_snake_button = nil end
+  if self.ng_plus_plus_button then self.ng_plus_plus_button.dead = true; self.ng_plus_plus_button = nil end
+  if self.ng_plus_minus_button then self.ng_plus_minus_button.dead = true; self.ng_plus_minus_button = nil end
+  if self.main_menu_button then self.main_menu_button.dead = true; self.main_menu_button = nil end
+  system.save_state()
+  if self:is(MainMenu) or self:is(BuyScreen) then input:set_mouse_visible(true)
+  elseif self:is(Arena) then input:set_mouse_visible(state.mouse_control or false) end
 end
 
 

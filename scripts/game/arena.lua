@@ -25,7 +25,8 @@ function Arena:on_enter(from, level, loop, units, passives, shop_level, shop_xp,
     input:set_mouse_visible(false)
   end
 
-  trigger:tween(2, main_song_instance, {volume = 0.5, pitch = 1}, math.linear)
+  main_song_volume = 0.5
+  if main_song_instance then trigger:tween(2, main_song_instance, {volume = 0.5, pitch = 1}, math.linear) end
 
   steam.friends.setRichPresence('steam_display', '#StatusFull')
   steam.friends.setRichPresence('text', 'Arena - Level ' .. self.level)
@@ -67,31 +68,34 @@ function Arena:on_enter(from, level, loop, units, passives, shop_level, shop_xp,
   self.color = self.color or fg[0]
 
   -- Spawn solids and player
-  self.x1, self.y1 = gw/2 - 0.8*gw/2, gh/2 - 0.8*gh/2
-  self.x2, self.y2 = gw/2 + 0.8*gw/2, gh/2 + 0.8*gh/2
+  self.x1, self.y1 = dgw/2 - 0.8*dgw/2, dgh/2 - 0.8*dgh/2
+  self.x2, self.y2 = dgw/2 + 0.8*dgw/2, dgh/2 + 0.8*dgh/2
   self.w, self.h = self.x2 - self.x1, self.y2 - self.y1
   self.spawn_points = {
     {x = self.x1 + 32, y = self.y1 + 32, r = math.pi/4},
     {x = self.x1 + 32, y = self.y2 - 32, r = -math.pi/4},
     {x = self.x2 - 32, y = self.y1 + 32, r = 3*math.pi/4},
     {x = self.x2 - 32, y = self.y2 - 32, r = -3*math.pi/4},
-    {x = gw/2, y = gh/2, r = random:float(0, 2*math.pi)}
+    {x = dgw/2, y = dgh/2, r = random:float(0, 2*math.pi)}
   }
   self.spawn_offsets = {{x = -12, y = -12}, {x = 12, y = -12}, {x = 12, y = 12}, {x = -12, y = 12}, {x = 0, y = 0}}
   self.last_spawn_enemy_time = love.timer.getTime()
 
-  Wall{group = self.main, vertices = math.to_rectangle_vertices(-40, -40, self.x1, gh + 40), color = bg[-1]}
-  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x2, -40, gw + 40, gh + 40), color = bg[-1]}
-  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x1, -40, self.x2, self.y1), color = bg[-1]}
-  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x1, self.y2, self.x2, gh + 40), color = bg[-1]}
-  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(-40, -40, self.x1, gh + 40), color = bg[-1]}
-  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x2, -40, gw + 40, gh + 40), color = bg[-1]}
-  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x1, -40, self.x2, self.y1), color = bg[-1]}
-  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x1, self.y2, self.x2, gh + 40), color = bg[-1]}
+  -- Viewport edges in world coords (camera centered at dgw/2, dgh/2)
+  local vl, vr = dgw/2 - gw/2 - 40, dgw/2 + gw/2 + 40
+  local vt, vb = dgh/2 - gh/2 - 40, dgh/2 + gh/2 + 40
+  Wall{group = self.main, vertices = math.to_rectangle_vertices(vl, vt, self.x1, vb), color = bg[-1]}
+  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x2, vt, vr, vb), color = bg[-1]}
+  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x1, vt, self.x2, self.y1), color = bg[-1]}
+  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x1, self.y2, self.x2, vb), color = bg[-1]}
+  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(vl, vt, self.x1, vb), color = bg[-1]}
+  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x2, vt, vr, vb), color = bg[-1]}
+  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x1, vt, self.x2, self.y1), color = bg[-1]}
+  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x1, self.y2, self.x2, vb), color = bg[-1]}
 
   for i, unit in ipairs(units) do
     if i == 1 then
-      self.player = Player{group = self.main, x = gw/2, y = gh/2 + 16, leader = true, character = unit.character, level = unit.level, passives = self.passives, ii = i}
+      self.player = Player{group = self.main, x = dgw/2, y = dgh/2 + 16, leader = true, character = unit.character, level = unit.level, passives = self.passives, ii = i}
     else
       self.player:add_follower(Player{group = self.main, character = unit.character, level = unit.level, passives = self.passives, ii = i})
     end
@@ -117,8 +121,8 @@ function Arena:on_enter(from, level, loop, units, passives, shop_level, shop_xp,
       end, 3, function()
         alert1:play{pitch = 1.2, volume = 0.5}
         camera:shake(4, 0.25)
-        SpawnEffect{group = self.effects, x = gw/2, y = gh/2 - 48}
-        SpawnEffect{group = self.effects, x = gw/2, y = gh/2, action = function(x, y)
+        SpawnEffect{group = self.effects, x = dgw/2, y = dgh/2 - 48}
+        SpawnEffect{group = self.effects, x = dgw/2, y = dgh/2, action = function(x, y)
           spawn1:play{pitch = random:float(0.8, 1.2), volume = 0.15}
           SpawnMarker{group = self.effects, x = x, y = y}
           self.t:after(1.125, function()
@@ -138,7 +142,7 @@ function Arena:on_enter(from, level, loop, units, passives, shop_level, shop_xp,
             self.spawning_enemies = true
             self.t:after((8 + math.floor(self.level/2))*0.1 + 0.5 + 0.75, function() self.spawning_enemies = false end, 'spawning_enemies')
             local spawn_type = random:table{'left', 'middle', 'right'}
-            local spawn_points = {left = {x = self.x1 + 32, y = gh/2}, middle = {x = gw/2, y = gh/2}, right = {x = self.x2 - 32, y = gh/2}}
+            local spawn_points = {left = {x = self.x1 + 32, y = dgh/2}, middle = {x = dgw/2, y = dgh/2}, right = {x = self.x2 - 32, y = dgh/2}}
             local p = spawn_points[spawn_type]
             SpawnMarker{group = self.effects, x = p.x, y = p.y}
             self.t:after(1.125, function() self:spawn_n_enemies(p, nil, 8 + math.floor(self.level/2)) end)
@@ -213,7 +217,7 @@ function Arena:on_enter(from, level, loop, units, passives, shop_level, shop_xp,
       end, 3, function()
         alert1:play{pitch = 1.2, volume = 0.5}
         camera:shake(4, 0.25)
-        SpawnEffect{group = self.effects, x = gw/2, y = gh/2 - 48}
+        SpawnEffect{group = self.effects, x = dgw/2, y = dgh/2 - 48}
         self.t:every(function() return #self.main:get_objects_by_classes(self.enemies) <= 0 and not self.spawning_enemies end, function()
           self.wave = self.wave + 1
           if self.wave > self.max_waves then return end
@@ -231,7 +235,7 @@ function Arena:on_enter(from, level, loop, units, passives, shop_level, shop_xp,
               self.spawning_enemies = true
               self.t:after((8 + (self.wave-1)*2)*0.1 + 0.5 + 0.75, function() self.spawning_enemies = false end, 'spawning_enemies')
               local spawn_type = random:table{'left', 'middle', 'right'}
-              local spawn_points = {left = {x = self.x1 + 32, y = gh/2}, middle = {x = gw/2, y = gh/2}, right = {x = self.x2 - 32, y = gh/2}}
+              local spawn_points = {left = {x = self.x1 + 32, y = dgh/2}, middle = {x = dgw/2, y = dgh/2}, right = {x = self.x2 - 32, y = dgh/2}}
               local p = spawn_points[spawn_type]
               SpawnMarker{group = self.effects, x = p.x, y = p.y}
               self.t:after(1.125, function() self:spawn_n_enemies(p, nil, 8 + (self.wave+math.min(self.loop*12, 200)-1)*2) end)
@@ -245,7 +249,7 @@ function Arena:on_enter(from, level, loop, units, passives, shop_level, shop_xp,
     if self.level == 20 and self.trailer then
       Text2{group = self.ui, x = gw/2, y = gh/2 - 24, lines = {{text = '[fg, wavy]蛇蛇小队', font = fat_font, alignment = 'center'}}}
       Text2{group = self.ui, x = gw/2, y = gh/2, sx = 0.5, sy = 0.5, lines = {{text = '[fg, wavy_mid]立即游玩!', font = fat_font, alignment = 'center'}}}
-      Text2{group = self.ui, x = gw/2, y = gh/2 + 24, sx = 0.5, sy = 0.5, lines = {{text = '[light_bg, wavy_mid]music: kubbi - ember', font = fat_font, alignment = 'center'}}}
+      Text2{group = self.ui, x = gw/2, y = gh/2 + 24, sx = 0.5, sy = 0.5, lines = {{text = '[light_bg, wavy_mid]音乐: kubbi - ember', font = fat_font, alignment = 'center'}}}
     end
   end
 
@@ -261,8 +265,8 @@ function Arena:on_enter(from, level, loop, units, passives, shop_level, shop_xp,
   end}
 
   if self.level == 1 then
-    local t1 = Text2{group = self.floor, x = gw/2, y = gh/2 + 2, sx = 0.6, sy = 0.6, lines = {{text = '[light_bg]点击左侧              点击右侧', font = fat_font, alignment = 'center'}}}
-    local t2 = Text2{group = self.floor, x = gw/2, y = gh/2 + 18, lines = {{text = '[light_bg]左转                                      右转', font = pixul_font, alignment = 'center'}}}
+    local t1 = Text2{group = self.floor, x = dgw/2, y = dgh/2 + 2, sx = 0.6, sy = 0.6, lines = {{text = '[light_bg]点击左侧              点击右侧', font = fat_font, alignment = 'center'}}}
+    local t2 = Text2{group = self.floor, x = dgw/2, y = dgh/2 + 18, lines = {{text = '[light_bg]左转                                      右转', font = pixul_font, alignment = 'center'}}}
     t1.t:after(8, function() t1.t:tween(0.2, t1, {sy = 0}, math.linear, function() t1.sy = 0 end) end)
     t2.t:after(8, function() t2.t:tween(0.2, t2, {sy = 0}, math.linear, function() t2.sy = 0 end) end)
   end
@@ -361,10 +365,6 @@ function Arena:update(dt)
   -- Enable touch zone steering only during active combat (not paused/died/won/choosing)
   input.touch_zone_steering = not self.paused and not self.died and not self.won and not self.choosing_passives and not self.quitting
 
-  if main_song_instance:isStopped() then
-    main_song_instance = _G[random:table{'song1', 'song2', 'song3', 'song4', 'song5'}]:play{volume = 0.5}
-  end
-
   if not self.paused and not self.died and not self.won then
     run_time = run_time + dt
   end
@@ -391,7 +391,7 @@ function Arena:update(dt)
         run_time = 0
         gold = 3
         passives = {}
-        main_song_instance:stop()
+        if main_song_instance then main_song_instance:stop() end
         run_passive_pool = {
           'centipede', 'ouroboros_technique_r', 'ouroboros_technique_l', 'amplify', 'resonance', 'ballista', 'call_of_the_void', 'crucio', 'speed_3', 'damage_4', 'shoot_5', 'death_6', 'lasting_7',
           'defensive_stance', 'offensive_stance', 'kinetic_bomb', 'porcupine_technique', 'last_stand', 'seeping', 'deceleration', 'annihilation', 'malediction', 'hextouch', 'whispers_of_doom',
@@ -420,7 +420,19 @@ function Arena:update(dt)
   end
 
   self:update_game_object(dt*slow_amount)
-  main_song_instance.pitch = math.clamp(slow_amount*music_slow_amount, 0.05, 1)
+  if main_song_instance then main_song_instance.pitch = math.clamp(slow_amount*music_slow_amount, 0.05, 1) end
+
+  -- Two-phase touch: pre-scan ALL groups for sticky hover before any update
+  if input and input._is_touch and not input.touch_zone_steering then
+    input._touch_sticky_active = nil
+    input._touch_confirm_group = nil
+    if not self.paused and not self.transitioning then
+      self.main:pre_touch_scan()
+      self.post_main:pre_touch_scan()
+      self.effects:pre_touch_scan()
+    end
+    self.ui:pre_touch_scan()
+  end
 
   if not self.paused and not self.transitioning then
     star_group:update(dt*slow_amount)
@@ -456,22 +468,15 @@ function Arena:quit()
       system.save_run()
       trigger:tween(1, _G, {slow_amount = 0}, math.linear, function() slow_amount = 0 end, 'slow_amount')
       trigger:tween(1, _G, {music_slow_amount = 0}, math.linear, function() music_slow_amount = 0 end, 'music_slow_amount')
-      trigger:tween(4, camera, {x = gw/2, y = gh/2, r = 0}, math.linear, function() camera.x, camera.y, camera.r = gw/2, gh/2, 0 end)
+      trigger:tween(4, camera, {x = dgw/2, y = dgh/2, r = 0}, math.linear, function() camera.x, camera.y, camera.r = dgw/2, dgh/2, 0 end)
       self.win_text = Text2{group = self.ui, x = gw/2 + 40, y = gh/2 - 69, force_update = true, lines = {{text = '[wavy_mid, cbyc2]恭喜通关!', font = fat_font, alignment = 'center'}}}
       trigger:after(2.5, function()
-        local open_url = function(b, url)
-          ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
-          b.spring:pull(0.2, 200, 10)
-          b.selected = true
-          ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
-          system.open_url(url)
-        end
-
         self.build_text = Text2{group = self.ui, x = 40, y = 20, force_update = true, lines = {{text = "[wavy_mid, fg]你的阵容", font = pixul_font, alignment = 'center'}}}
         for i, unit in ipairs(self.units) do
+          local display_name = character_names[unit.character] or unit.character
           CharacterPart{group = self.ui, x = 20, y = 40 + (i-1)*19, character = unit.character, level = unit.level, force_update = true, cant_click = true, parent = self}
-          Text2{group = self.ui, x = 20 + 14 + pixul_font:get_text_width(unit.character)/2, y = 40 + (i-1)*19, force_update = true, lines = {
-            {text = '[' .. character_color_strings[unit.character] .. ']' .. unit.character, font = pixul_font, alignment = 'left'}
+          Text2{group = self.ui, x = 20 + 14 + pixul_font:get_text_width(display_name)/2, y = 40 + (i-1)*19, force_update = true, lines = {
+            {text = '[' .. character_color_strings[unit.character] .. ']' .. display_name, font = pixul_font, alignment = 'left'}
           }}
         end
         for i, passive in ipairs(self.passives) do
@@ -490,38 +495,21 @@ function Arena:quit()
           self.win_text2 = Text2{group = self.ui, x = gw/2 + 40, y = gh/2 + 20, force_update = true, lines = {
             {text = "[fg]你真正通关了!", font = pixul_font, alignment = 'center', height_multiplier = 1.24},
             {text = "[fg]感谢你的游玩和完整通关!", font = pixul_font, alignment = 'center', height_multiplier = 1.24},
-            {text = "[fg]本游戏灵感来源:", font = pixul_font, alignment = 'center', height_multiplier = 3.5},
-            {text = "[fg]快去看看吧! 想玩更多类似游戏:", font = pixul_font, alignment = 'center', height_multiplier = 3.5},
-            {text = "[wavy_mid, yellow]感谢游玩!", font = pixul_font, alignment = 'center'},
+            {text = "[wavy_mid, yellow]感谢游玩!", font = pixul_font, alignment = 'center', height_multiplier = 1.5},
+            {text = "[bg10]喜欢这个游戏吗？求评价支持我们，也欢迎吐槽。", font = pixul_font, alignment = 'center'},
           }}
-          SteamFollowButton{group = self.ui, x = gw/2 + 40, y = gh/2 + 58, force_update = true}
           Button{group = self.ui, x = gw - 40, y = gh - 44, force_update = true, button_text = '制作组', fg_color = 'bg10', bg_color = 'bg', action = function() self:create_credits() end}
           Button{group = self.ui, x = gw - 39, y = gh - 20, force_update = true, button_text = ' 循环 ', fg_color = 'bg10', bg_color = 'bg', action = function() self:endless() end}
           self.try_loop_text = Text2{group = self.ui, x = gw - 144, y = gh - 20, force_update = true, lines = {
             {text = '[bg10]继续挑战(+难度):', font = pixul_font},
           }}
-          Button{group = self.ui, x = gw/2 - 50 + 40, y = gh/2 + 12, force_update = true, button_text = 'nimble quest', fg_color = 'bluem5', bg_color = 'blue', action = function(b) open_url(b, 'https://store.steampowered.com/app/259780/Nimble_Quest/') end}
-          Button{group = self.ui, x = gw/2 + 50 + 40, y = gh/2 + 12, force_update = true, button_text = 'dota underlords', fg_color = 'bluem5', bg_color = 'blue', action = function(b) open_url(b, 'https://store.steampowered.com/app/1046930/Dota_Underlords/') end}
 
         else
           self.win_text2 = Text2{group = self.ui, x = gw/2 + 40, y = gh/2 + 5, force_update = true, lines = {
             {text = "[fg]你通关了!", font = pixul_font, alignment = 'center', height_multiplier = 1.24},
-            {text = "[fg]如果你喜欢:", font = pixul_font, alignment = 'center', height_multiplier = 3.5},
-            {text = "[fg]如果你喜欢音乐:", font = pixul_font, alignment = 'center', height_multiplier = 3.5},
-            {text = "[wavy_mid, yellow]感谢游玩!", font = pixul_font, alignment = 'center'},
+            {text = "[wavy_mid, yellow]感谢游玩!", font = pixul_font, alignment = 'center', height_multiplier = 1.5},
+            {text = "[bg10]喜欢这个游戏吗？求评价支持我们，也欢迎吐槽。", font = pixul_font, alignment = 'center'},
           }}
-          --[[
-          self.win_text2 = Text2{group = self.ui, x = gw/2 + 40, y = gh/2 + 20, force_update = true, lines = {
-            {text = "[fg]you've beaten the game!", font = pixul_font, alignment = 'center', height_multiplier = 1.24},
-            {text = "[fg]i made this game in 3 months as a dev challenge", font = pixul_font, alignment = 'center', height_multiplier = 1.24},
-            {text = "[fg]and i'm happy with how it turned out!", font = pixul_font, alignment = 'center', height_multiplier = 1.24},
-            {text = "[fg]if you liked it too and want to play more games like this:", font = pixul_font, alignment = 'center', height_multiplier = 4},
-            {text = "[fg]i will release more games this year, so stay tuned!", font = pixul_font, alignment = 'center', height_multiplier = 1.4},
-            {text = "[wavy_mid, yellow]thanks for playing!", font = pixul_font, alignment = 'center'},
-          }}
-          ]]--
-          SteamFollowButton{group = self.ui, x = gw/2 + 40, y = gh/2 - 10, force_update = true}
-          Button{group = self.ui, x = gw/2 + 40, y = gh/2 + 33, force_update = true, button_text = '购买原声!', fg_color = 'greenm5', bg_color = 'green', action = function(b) open_url(b, 'https://kubbimusic.com/album/ember') end}
           Button{group = self.ui, x = gw - 40, y = gh - 44, force_update = true, button_text = ' 循环 ', fg_color = 'bg10', bg_color = 'bg', action = function() self:endless() end}
           RestartButton{group = self.ui, x = gw - 40, y = gh - 20, force_update = true}
           self.try_loop_text = Text2{group = self.ui, x = gw - 200, y = gh - 44, force_update = true, lines = {
@@ -694,16 +682,17 @@ function Arena:quit()
         self.arena_clear_text.dead = true
         trigger:tween(1, _G, {slow_amount = 0}, math.linear, function() slow_amount = 0 end, 'slow_amount')
         trigger:tween(1, _G, {music_slow_amount = 0}, math.linear, function() music_slow_amount = 0 end, 'music_slow_amount')
-        trigger:tween(4, camera, {x = gw/2, y = gh/2, r = 0}, math.linear, function() camera.x, camera.y, camera.r = gw/2, gh/2, 0 end)
+        trigger:tween(4, camera, {x = dgw/2, y = dgh/2, r = 0}, math.linear, function() camera.x, camera.y, camera.r = dgw/2, dgh/2, 0 end)
         self:set_passives()
         RerollButton{group = main.current.ui, x = gw - 40, y = gh - 40, parent = self, force_update = true}
-        self.shop_text = Text({{text = '[wavy_mid, fg]gold: [yellow]' .. gold, font = pixul_font, alignment = 'center'}}, global_text_tags)
+        self.shop_text = Text({{text = '[wavy_mid, fg]金币: [yellow]' .. gold, font = pixul_font, alignment = 'center'}}, global_text_tags)
 
         self.build_text = Text2{group = self.ui, x = 40, y = 20, force_update = true, lines = {{text = "[wavy_mid, fg]你的阵容", font = pixul_font, alignment = 'center'}}}
         for i, unit in ipairs(self.units) do
+          local display_name = character_names[unit.character] or unit.character
           CharacterPart{group = self.ui, x = 20, y = 40 + (i-1)*19, character = unit.character, level = unit.level, force_update = true, cant_click = true, parent = self}
-          Text2{group = self.ui, x = 20 + 14 + pixul_font:get_text_width(unit.character)/2, y = 40 + (i-1)*19, force_update = true, lines = {
-            {text = '[' .. character_color_strings[unit.character] .. ']' .. unit.character, font = pixul_font, alignment = 'left'}
+          Text2{group = self.ui, x = 20 + 14 + pixul_font:get_text_width(display_name)/2, y = 40 + (i-1)*19, force_update = true, lines = {
+            {text = '[' .. character_color_strings[unit.character] .. ']' .. display_name, font = pixul_font, alignment = 'left'}
           }}
         end
         for i, passive in ipairs(self.passives) do
@@ -727,7 +716,7 @@ function Arena:set_passives(from_reroll)
     self.cards = {}
   end
 
-  local card_w, card_h = 70, 100
+  local card_w, card_h = 90, 100
   local w = 4*card_w + 3*20
   self.choosing_passives = true
   self.cards = {}
@@ -775,14 +764,14 @@ function Arena:draw()
     star_canvas:draw(0, 0, 0, 1, 1)
   end, function()
     camera:attach()
-    graphics.rectangle(gw/2, gh/2, self.w, self.h, nil, nil, fg[0])
+    graphics.rectangle(dgw/2, dgh/2, self.w, self.h, nil, nil, fg[0])
     camera:detach()
   end, true)
 
   camera:attach()
   if self.start_time and self.start_time > 0 and not self.choosing_passives then
-    graphics.push(gw/2, gh/2 - 48, 0, self.hfx.condition1.x, self.hfx.condition1.x)
-      graphics.print_centered(tostring(self.start_time), fat_font, gw/2, gh/2 - 48, 0, 1, 1, nil, nil, self.hfx.condition1.f and fg[0] or red[0])
+    graphics.push(dgw/2, dgh/2 - 48, 0, self.hfx.condition1.x, self.hfx.condition1.x)
+      graphics.print_centered(tostring(self.start_time), fat_font, dgw/2, dgh/2 - 48, 0, 1, 1, nil, nil, self.hfx.condition1.f and fg[0] or red[0])
     graphics.pop()
   end
 
@@ -797,12 +786,13 @@ function Arena:draw()
       if self.win_condition == 'wave' then
         if self.start_time <= 0 then
           graphics.push(self.x2 - 50, self.y1 - 10, 0, self.hfx.condition2.x, self.hfx.condition2.x)
-            graphics.print_centered('波次:', fat_font, self.x2 - 50, self.y1 - 10, 0, 0.6, 0.6, nil, nil, fg[0])
+            graphics.print_centered('波次:', fat_font, self.x2 - 50, self.y1 - 10, 0, 0.6, 0.6, nil, nil, white[0])
           graphics.pop()
           local wave = self.wave
           if wave > self.max_waves then wave = self.max_waves end
           graphics.push(self.x2 - 25 + fat_font:get_text_width(wave .. '/' .. self.max_waves)/2, self.y1 - 8, 0, self.hfx.condition1.x, self.hfx.condition1.x)
-            graphics.print(wave .. '/' .. self.max_waves, fat_font, self.x2 - 25, self.y1 - 8, 0, 0.75, 0.75, nil, fat_font.h/2, self.hfx.condition1.f and fg[0] or yellow[0])
+            graphics.set_color(yellow[0])
+            graphics.print(wave .. '/' .. self.max_waves, fat_font, self.x2 - 25, self.y1 - 8, 0, 0.75, 0.75, nil, fat_font.h/2)
           graphics.pop()
         end
       end
@@ -838,13 +828,14 @@ function Arena:die()
     self.died_text = Text2{group = self.ui, x = gw/2, y = gh/2 - 32, lines = {
       {text = '[wavy_mid, cbyc]你死了...', font = fat_font, alignment = 'center', height_multiplier = 1.25},
     }}
-    trigger:tween(2, camera, {x = gw/2, y = gh/2, r = 0}, math.linear, function() camera.x, camera.y, camera.r = gw/2, gh/2, 0 end)
+    trigger:tween(2, camera, {x = dgw/2, y = dgh/2, r = 0}, math.linear, function() camera.x, camera.y, camera.r = dgw/2, dgh/2, 0 end)
     self.t:after(2, function()
       self.build_text = Text2{group = self.ui, x = 40, y = 20, force_update = true, lines = {{text = "[wavy_mid, fg]你的阵容", font = pixul_font, alignment = 'center'}}}
       for i, unit in ipairs(self.units) do
+        local display_name = character_names[unit.character] or unit.character
         CharacterPart{group = self.ui, x = 20, y = 40 + (i-1)*19, character = unit.character, level = unit.level, force_update = true, cant_click = true, parent = self}
-        Text2{group = self.ui, x = 20 + 14 + pixul_font:get_text_width(unit.character)/2, y = 40 + (i-1)*19, force_update = true, lines = {
-          {text = '[' .. character_color_strings[unit.character] .. ']' .. unit.character, font = pixul_font, alignment = 'left'}
+        Text2{group = self.ui, x = 20 + 14 + pixul_font:get_text_width(display_name)/2, y = 40 + (i-1)*19, force_update = true, lines = {
+          {text = '[' .. character_color_strings[unit.character] .. ']' .. display_name, font = pixul_font, alignment = 'left'}
         }}
       end
       for i, passive in ipairs(self.passives) do
@@ -864,7 +855,7 @@ function Arena:die()
           run_time = 0
           gold = 3
           passives = {}
-          main_song_instance:stop()
+          if main_song_instance then main_song_instance:stop() end
           run_passive_pool = {
             'centipede', 'ouroboros_technique_r', 'ouroboros_technique_l', 'amplify', 'resonance', 'ballista', 'call_of_the_void', 'crucio', 'speed_3', 'damage_4', 'shoot_5', 'death_6', 'lasting_7',
             'defensive_stance', 'offensive_stance', 'kinetic_bomb', 'porcupine_technique', 'last_stand', 'seeping', 'deceleration', 'annihilation', 'malediction', 'hextouch', 'whispers_of_doom',
@@ -967,6 +958,8 @@ function Arena:create_credits()
     open_url(b, 'https://twitter.com/thecryru') end}
   Button{group = self.credits, x = 258, y = 210, button_text = 'Yongmin Park', fg_color = 'redm5', bg_color = 'red', credits_button = true, action = function(b) 
     open_url(b, 'https://twitter.com/yongminparks') end}
+  Text2{group = self.credits, x = 60, y = 240, lines = {{text = '[bg10]特别感谢: ', font = pixul_font}}}
+  Button{group = self.credits, x = 140, y = 240, button_text = 'talala', fg_color = 'bg10', bg_color = 'bg', credits_button = true, action = function(b) end}
 end
 
 
@@ -1198,13 +1191,16 @@ end
 
 
 function CharacterHP:draw()
+  if not self.parent or not self.parent.character then return end
+  local color_str = character_color_strings[self.parent.character]
+  local color = color_str and _G[color_str] and _G[color_str][-2] or bg[5]
   graphics.push(self.x, self.y, 0, self.hfx.hit.x, self.hfx.hit.x)
-    graphics.rectangle(self.x, self.y - 2, 14, 4, 2, 2, self.parent.dead and bg[5] or (self.hfx.hit.f and fg[0] or _G[character_color_strings[self.parent.character]][-2]), 2)
-    if self.parent.hp > 0 then
-      graphics.rectangle2(self.x - 7, self.y - 4, 14*(self.parent.hp/self.parent.max_hp), 4, nil, nil, self.parent.dead and bg[5] or (self.hfx.hit.f and fg[0] or _G[character_color_strings[self.parent.character]][-2]))
+    graphics.rectangle(self.x, self.y - 2, 14, 4, 2, 2, self.parent.dead and bg[5] or (self.hfx.hit.f and fg[0] or color), 2)
+    if self.parent.hp and self.parent.max_hp and self.parent.hp > 0 and self.parent.max_hp > 0 then
+      graphics.rectangle2(self.x - 7, self.y - 4, 14*(self.parent.hp/self.parent.max_hp), 4, nil, nil, self.parent.dead and bg[5] or (self.hfx.hit.f and fg[0] or color))
     end
     if not self.parent.dead then
-      graphics.line(self.x - 8, self.y + 5, self.x - 8 + 15.5*self.cooldown_ratio, self.y + 5, self.hfx.hit.f and fg[0] or _G[character_color_strings[self.parent.character]][-2], 2)
+      graphics.line(self.x - 8, self.y + 5, self.x - 8 + 15.5*self.cooldown_ratio, self.y + 5, self.hfx.hit.f and fg[0] or color, 2)
     end
   graphics.pop()
 
@@ -1214,7 +1210,7 @@ function CharacterHP:draw()
     graphics.push(p.x, p.y, 0, self.hfx.hit.x, self.hfx.hit.y)
       if not p.dead then
         graphics.line(p.x - 4, p.y + 8, p.x - 4 + 8, p.y + 8, self.hfx.hit.f and fg[0] or bg[-2], 2)
-        graphics.line(p.x - 4, p.y + 8, p.x - 4 + 8*self.cooldown_ratio, p.y + 8, self.hfx.hit.f and fg[0] or _G[character_color_strings[p.character]][-2], 2)
+        graphics.line(p.x - 4, p.y + 8, p.x - 4 + 8*self.cooldown_ratio, p.y + 8, self.hfx.hit.f and fg[0] or color, 2)
       end
     graphics.pop()
   end

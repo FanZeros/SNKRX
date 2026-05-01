@@ -196,12 +196,14 @@ function Physics:set_as_chain(loop, vertices, body_type, tag)
   self:_create_physics_body(body_type, tag)
 
   local chain = self.physics_node:CreateComponent("CollisionChain2D")
-  chain:SetLoop(loop)
+  -- IMPORTANT: Set vertices BEFORE SetLoop to avoid native crash on some devices.
+  -- Box2D's b2ChainShape::CreateLoop requires vertex data to exist first.
   local count = #vertices / 2
   chain:SetVertexCount(count)
   for i = 1, count do
     chain:SetVertex(i - 1, Vector2(vertices[(i - 1) * 2 + 1], vertices[(i - 1) * 2 + 2]))
   end
+  chain:SetLoop(loop)
   self:_setup_collision_shape(chain, 'chain', {loop = loop, vertices = vertices})
   return self
 end

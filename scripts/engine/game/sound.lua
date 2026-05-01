@@ -19,8 +19,14 @@ function Sound:init(filename, args)
   rawset(self, '_snd_props', { volume = 0.5, pitch = 1.0 })
   -- Original SNKRX prepends 'assets/sounds/' to filename.
   -- In UrhoX, assets/ is a resource root, so we prepend 'sounds/'.
+  -- DWP: Sound is a media resource type — cache:GetResource returns a placeholder
+  -- (silent) immediately and hot-swaps real audio data once downloaded.
+  -- Do NOT wrap in pcall — it can interfere with DWP placeholder mechanism.
   local path = "sounds/" .. filename
   self.resource = cache:GetResource("Sound", path)
+  if not self.resource then
+    print(string.format("[Sound] WARN: cache:GetResource returned nil for '%s'", path))
+  end
   return self
 end
 
@@ -43,6 +49,12 @@ function Sound:play(volume_or_args, args)
   self._snd_props.volume = volume
   self._snd_props.pitch = pitch
 
+  -- Lazy-load: if resource was nil at construction, retry now
+  if not self.resource and self.filename then
+    local path = "sounds/" .. self.filename
+    self.resource = cache:GetResource("Sound", path)
+  end
+
   if self.resource and scene_ then
     -- Stop previous playback if we have an active source
     if self._source_node then
@@ -51,10 +63,13 @@ function Sound:play(volume_or_args, args)
       self._source_node:Remove()
     end
 
-    -- Create a temporary node with SoundSource to play
+    -- Create a node with SoundSource to play.
+    -- Do NOT use SetAutoRemoveMode(REMOVE_NODE) because it would delete the
+    -- underlying C++ node while self._source_node still references it, causing
+    -- stale-pointer errors on the next play() call.  We manage the node
+    -- lifecycle ourselves (remove old node at the top of play() / stop()).
     self._source_node = scene_:CreateChild("SFX")
     local src = self._source_node:CreateComponent("SoundSource")
-    src:SetAutoRemoveMode(REMOVE_NODE)
     local tag_volume = 1
     if self.tag then
       if self.tag.volume then tag_volume = self.tag.volume end
@@ -66,7 +81,8 @@ function Sound:play(volume_or_args, args)
       end
     end
     local gain = volume * (sfx_volume or 1) * tag_volume
-    src:Play(self.resource, self.resource.frequency * pitch, gain)
+    local freq = self.resource.frequency * pitch
+    src:Play(self.resource, freq, gain)
   end
   return self
 end

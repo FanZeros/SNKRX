@@ -66,24 +66,24 @@ local function json_decode(s)
 end
 
 local function file_write(path, content)
-  local f = File(path, FILE_WRITE)
-  if f and f:IsOpen() then
-    f:WriteString(content)
-    f:Close()
-    return true
-  end
-  return false
+  if not rawget(_G, 'fileSystem') then return false end
+  local ok, f = pcall(File, path, FILE_WRITE)
+  if not ok or not f or not f:IsOpen() then return false end
+  f:WriteString(content)
+  f:Close()
+  return true
 end
 
 local function file_read(path)
-  if not fileSystem:FileExists(path) then return nil end
-  local f = File(path, FILE_READ)
-  if f and f:IsOpen() then
-    local content = f:ReadString()
-    f:Close()
-    if content and #content > 0 then
-      return content
-    end
+  if not rawget(_G, 'fileSystem') then return nil end
+  local ok, exists = pcall(function() return fileSystem:FileExists(path) end)
+  if not ok or not exists then return nil end
+  local ok2, f = pcall(File, path, FILE_READ)
+  if not ok2 or not f or not f:IsOpen() then return nil end
+  local content = f:ReadString()
+  f:Close()
+  if content and #content > 0 then
+    return content
   end
   return nil
 end
@@ -223,6 +223,10 @@ current_new_game_plus = 0
 
 -- Ensure 'state' global exists (persistent game state)
 if not rawget(_G, 'state') then
-  local loaded = system.load_state()
-  state = loaded or {}
+  local ok, loaded = pcall(system.load_state)
+  if ok and loaded then
+    state = loaded
+  else
+    state = {}
+  end
 end

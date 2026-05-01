@@ -10,10 +10,12 @@ end
 
 function MainMenu:on_enter(from)
   slow_amount = 1
-  trigger:tween(2, main_song_instance, {volume = 0.5, pitch = 1}, math.linear)
+  main_song_volume = 0.5
+  if main_song_instance then trigger:tween(2, main_song_instance, {volume = 0.5, pitch = 1}, math.linear) end
 
   steam.friends.setRichPresence('steam_display', '#StatusFull')
   steam.friends.setRichPresence('text', 'Main Menu')
+
 
   self.floor = Group()
   self.main = Group():set_as_physics_world(32, 0, 0, {'player', 'enemy', 'projectile', 'enemy_projectile', 'force_field', 'ghost'})
@@ -46,17 +48,27 @@ function MainMenu:on_enter(from)
   self.enemies = {Seeker, EnemyCritter}
 
   -- Spawn solids and player
-  self.x1, self.y1 = gw/2 - 0.8*gw/2, gh/2 - 0.8*gh/2
-  self.x2, self.y2 = gw/2 + 0.8*gw/2, gh/2 + 0.8*gh/2
+  self.x1, self.y1 = dgw/2 - 0.8*dgw/2, dgh/2 - 0.8*dgh/2
+  self.x2, self.y2 = dgw/2 + 0.8*dgw/2, dgh/2 + 0.8*dgh/2
   self.w, self.h = self.x2 - self.x1, self.y2 - self.y1
-  Wall{group = self.main, vertices = math.to_rectangle_vertices(-40, -40, self.x1, gh + 40), color = bg[-1]}
-  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x2, -40, gw + 40, gh + 40), color = bg[-1]}
-  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x1, -40, self.x2, self.y1), color = bg[-1]}
-  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x1, self.y2, self.x2, gh + 40), color = bg[-1]}
-  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(-40, -40, self.x1, gh + 40), color = bg[-1]}
-  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x2, -40, gw + 40, gh + 40), color = bg[-1]}
-  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x1, -40, self.x2, self.y1), color = bg[-1]}
-  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x1, self.y2, self.x2, gh + 40), color = bg[-1]}
+
+  -- Shift camera right on wide screens so arena appears more to the left,
+  -- balancing the visual composition with the title/buttons on the left side.
+  local extra_w = math.max(0, gw - dgw)
+  camera.x = dgw/2 + extra_w * 0.25
+
+  -- Viewport edges in world coords (based on shifted camera position)
+  local vl, vr = camera.x - gw/2 - 40, camera.x + gw/2 + 40
+  local vt, vb = camera.y - gh/2 - 40, camera.y + gh/2 + 40
+  Wall{group = self.main, vertices = math.to_rectangle_vertices(vl, vt, self.x1, vb), color = bg[-1]}
+  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x2, vt, vr, vb), color = bg[-1]}
+  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x1, vt, self.x2, self.y1), color = bg[-1]}
+  Wall{group = self.main, vertices = math.to_rectangle_vertices(self.x1, self.y2, self.x2, vb), color = bg[-1]}
+  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(vl, vt, self.x1, vb), color = bg[-1]}
+  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x2, vt, vr, vb), color = bg[-1]}
+  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x1, vt, self.x2, self.y1), color = bg[-1]}
+  WallCover{group = self.post_main, vertices = math.to_rectangle_vertices(self.x1, self.y2, self.x2, vb), color = bg[-1]}
+
 
   self.t:every(0.375, function()
     local p = random:table(star_positions)
@@ -75,15 +87,16 @@ function MainMenu:on_enter(from)
 
   for i, unit in ipairs(self.units) do
     if i == 1 then
-      self.player = Player{group = self.main, x = gw/2 + random:float(-48, 48), y = gh/2 + 16 + random:float(-48, 48), leader = true, character = unit.character, level = unit.level, passives = self.passives, ii = i}
+      self.player = Player{group = self.main, x = dgw/2 + random:float(-48, 48), y = dgh/2 + 16 + random:float(-48, 48), leader = true, character = unit.character, level = unit.level, passives = self.passives, ii = i}
     else
       self.player:add_follower(Player{group = self.main, character = unit.character, level = unit.level, passives = self.passives, ii = i})
     end
   end
 
+
   self.title_text = Text({{text = '[wavy_mid, fg]蛇蛇小队', font = fat_font, alignment = 'center'}}, global_text_tags)
 
-  self.arena_run_button = Button{group = self.main_ui, x = 55, y = gh/2 - 10, force_update = true, button_text = '开始游戏', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+  self.arena_run_button = Button{group = self.main_ui, x = 55, y = dgh/2 - 10, force_update = true, button_text = '开始游戏', fg_color = 'bg10', bg_color = 'bg', action = function(b)
     ui_transition2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
     ui_switch2:play{pitch = random:float(0.95, 1.05), volume = 0.5}
     ui_switch1:play{pitch = random:float(0.95, 1.05), volume = 0.5}
@@ -110,17 +123,22 @@ function MainMenu:on_enter(from)
       main:go_to('buy_screen', run.level or 1, run.loop or 0, run.units or {}, passives, run.shop_level or 1, run.shop_xp or 0)
     end, text = Text({{text = '[wavy, ' .. tostring(state.dark_transitions and 'fg' or 'bg') .. ']加载中...', font = pixul_font, alignment = 'center'}}, global_text_tags)}
   end}
-  self.options_button = Button{group = self.main_ui, x = 47, y = gh/2 + 12, force_update = true, button_text = '设置', fg_color = 'bg10', bg_color = 'bg', action = function(b)
+  self.options_button = Button{group = self.main_ui, x = 47, y = dgh/2 + 12, force_update = true, button_text = '设置', fg_color = 'bg10', bg_color = 'bg', action = function(b)
     if not self.paused then
       open_options(self)
     else
       close_options(self)
     end
   end}
+
 end
 
 
 function MainMenu:on_exit()
+  -- Reset camera to design center (undo wide-screen shift)
+  camera.x = dgw/2
+  camera.y = dgh/2
+
   self.floor:destroy()
   self.main:destroy()
   self.post_main:destroy()
@@ -144,10 +162,6 @@ end
 
 
 function MainMenu:update(dt)
-  if main_song_instance:isStopped() then
-    main_song_instance = _G[random:table{'song1', 'song2', 'song3', 'song4', 'song5'}]:play{volume = 0.5}
-  end
-
   if input.escape.pressed then
     if not self.paused then
       open_options(self)
@@ -159,6 +173,16 @@ function MainMenu:update(dt)
   self:update_game_object(dt*slow_amount)
 
   if not self.paused and not self.transitioning then
+    -- Two-phase touch: pre-scan ALL groups for sticky hover before any update
+    if input and input._is_touch and not input.touch_zone_steering then
+      input._touch_sticky_active = nil
+      input._touch_confirm_group = nil
+      self.main:pre_touch_scan()
+      self.post_main:pre_touch_scan()
+      self.effects:pre_touch_scan()
+      self.main_ui:pre_touch_scan()
+      self.ui:pre_touch_scan()
+    end
     star_group:update(dt*slow_amount)
     self.floor:update(dt*slow_amount)
     self.main:update(dt*slow_amount)
@@ -182,13 +206,13 @@ function MainMenu:draw()
     star_canvas:draw(0, 0, 0, 1, 1)
   end, function()
     camera:attach()
-    graphics.rectangle(gw/2, gh/2, self.w, self.h, nil, nil, fg[0])
+    graphics.rectangle(dgw/2, dgh/2, self.w, self.h, nil, nil, fg[0])
     camera:detach()
   end, true)
   graphics.rectangle(gw/2, gh/2, 2*gw, 2*gh, nil, nil, modal_transparent)
 
   self.main_ui:draw()
-  self.title_text:draw(60, gh/2 - 40)
+  self.title_text:draw(60, dgh/2 - 40)
   if self.paused then graphics.rectangle(gw/2, gh/2, 2*gw, 2*gh, nil, nil, modal_transparent) end
   self.ui:draw()
 end

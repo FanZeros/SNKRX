@@ -1,6 +1,7 @@
 ---@diagnostic disable: undefined-global, redefined-local
 -- Shared functions and classes for projects using JUGGLRX's visual style.
 function shared_init()
+
   local colors = {
     white = ColorRamp(Color(1, 1, 1, 1), 0.025),
     black = ColorRamp(Color(0, 0, 0, 1), 0.025),
@@ -40,8 +41,19 @@ function shared_init()
   if state.volume_muted then sfx.volume = 0 end
   if state.music_muted then music.volume = 0 end
 
-  fat_font = Font('MiSans-Regular', 10)
-  pixul_font = Font('MiSans-Regular', 8)
+
+  fat_font = Font('ChangBanDianSong', 24)
+  pixul_font = Font('ChangBanDianSong', 12)
+
+  -- If fonts fell back to MiSans (DWP not finished), schedule retry after 2 seconds
+  if fat_font._is_fallback or pixul_font._is_fallback then
+    print("[shared] Fonts using fallback, scheduling reload in 2s...")
+    trigger:after(2, function()
+      if fat_font._is_fallback then fat_font:try_reload() end
+      if pixul_font._is_fallback then pixul_font:try_reload() end
+    end)
+  end
+
   background_canvas = Canvas(gw, gh)
   main_canvas = Canvas(gw, gh, {stencil = true})
   shadow_canvas = Canvas(gw, gh)
@@ -54,40 +66,42 @@ function shared_init()
 end
 
 
-function shared_draw(draw_action)
+function shared_draw(draw_action, opts)
   star_canvas:draw_to(function()
     star_group:draw()
   end)
 
   background_canvas:draw_to(function()
     camera:attach()
-    bg_gradient:draw(gw/2, gh/2, 480, 270)
+    bg_gradient:draw(camera.x, camera.y, gw + 80, gh + 80)
     camera:detach()
   end)
 
   main_canvas:draw_to(function()
     -- Draw checkerboard BEFORE game content so WallCover (in post_main) can cover it
     camera:attach()
-    local ax1 = gw/2 - 0.8*gw/2  -- 48
-    local ay1 = gh/2 - 0.8*gh/2  -- 27
-    local ax2 = gw/2 + 0.8*gw/2  -- 432
-    local ay2 = gh/2 + 0.8*gh/2  -- 243
-    local cell = 15
-    local cols = math.ceil((ax2 - ax1) / cell)
-    local rows = math.ceil((ay2 - ay1) / cell)
-    for i = 1, cols do
-      for j = 1, rows do
-        if (i + j) % 2 == 0 then
-          local cx = ax1 + (i-1)*cell
-          local cy = ay1 + (j-1)*cell
-          local cw = math.min(cell, ax2 - cx)
-          local ch = math.min(cell, ay2 - cy)
-          graphics.rectangle2(cx, cy, cw, ch, nil, nil, bg_off)
+    local ax1 = dgw/2 - 0.8*dgw/2
+    local ay1 = dgh/2 - 0.8*dgh/2
+    local ax2 = dgw/2 + 0.8*dgw/2
+    local ay2 = dgh/2 + 0.8*dgh/2
+    if not (opts and opts.hide_board) then
+      local cell = 15
+      local cols = math.ceil((ax2 - ax1) / cell)
+      local rows = math.ceil((ay2 - ay1) / cell)
+      for i = 1, cols do
+        for j = 1, rows do
+          if (i + j) % 2 == 0 then
+            local cx = ax1 + (i-1)*cell
+            local cy = ay1 + (j-1)*cell
+            local cw = math.min(cell, ax2 - cx)
+            local ch = math.min(cell, ay2 - cy)
+            graphics.rectangle2(cx, cy, cw, ch, nil, nil, bg_off)
+          end
         end
       end
+      -- Draw arena border outline
+      graphics.rectangle2(ax1, ay1, ax2 - ax1, ay2 - ay1, nil, nil, bg[5], 1)
     end
-    -- Draw arena border outline
-    graphics.rectangle2(ax1, ay1, ax2 - ax1, ay2 - ay1, nil, nil, bg[5], 1)
     camera:detach()
     draw_action()
     if flashing then graphics.rectangle(gw/2, gh/2, gw, gh, nil, nil, flash_color) end
@@ -100,11 +114,9 @@ function shared_draw(draw_action)
     shadow_shader:unset()
   end)
 
-  local ox, oy = screen_ox or 0, screen_oy or 0
-  local x, y = ox, oy
-  background_canvas:draw(x, y, 0, sx, sy)
-  shadow_canvas:draw(x + 1.5*sx, y + 1.5*sy, 0, sx, sy)
-  main_canvas:draw(x, y, 0, sx, sy)
+  background_canvas:draw(0, 0, 0, sx, sy)
+  shadow_canvas:draw(1.5*sx, 1.5*sy, 0, sx, sy)
+  main_canvas:draw(0, 0, 0, sx, sy)
 end
 
 
