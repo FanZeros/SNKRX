@@ -276,9 +276,9 @@ function BuyScreen:draw()
   end
 
   if self.shop_text then self.shop_text:draw(80, 20) end
-  -- Touch hint on mobile devices
+  -- Touch hint on mobile devices (to the left of Lv.X at screen bottom)
   if input._is_touch and not self.in_tutorial and not self.paused then
-    graphics.print_centered("点击查看 · 再点选择", pixul_font, 80, 30, 0, 1, 1, 0, 0, bg[5])
+    graphics.print_centered("双击选择", pixul_font, 230, dgh - 8, 0, 1, 1, 0, 0, bg[5])
   end
   if self.sets_text then self.sets_text:draw(355, 20) end
   if self.party_text then self.party_text:draw(440, 20) end

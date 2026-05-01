@@ -123,11 +123,11 @@ function Group:pre_touch_scan()
       end
     end
 
-    -- If not on sticky object, find which other object was touched
+    -- If not on sticky object, find which other object was actually touched
     if not touched_obj then
       for _, object in ipairs(self.objects) do
         if not object.dead and object.interact_with_mouse and object.shape
-            and self._hover_state[object.id] then
+            and _hit_test(object, mx, my) then
           touched_obj = object
           break
         end
@@ -135,6 +135,14 @@ function Group:pre_touch_scan()
     end
 
     if touched_obj then
+      -- Ensure the touched object has on_mouse_enter called (it may have been
+      -- skipped by _run_hover_detection if it was the sticky-hovered object,
+      -- or just entered for the first time on this tap)
+      if not self._hover_state[touched_obj.id] then
+        if touched_obj.on_mouse_enter then touched_obj:on_mouse_enter() end
+        self._hover_state[touched_obj.id] = true
+      end
+
       if prev_id == touched_obj.id then
         -- Same object tapped again
         local elapsed = love.timer.getTime() - (self._touch_hover_time or 0)
@@ -150,7 +158,7 @@ function Group:pre_touch_scan()
           input._touch_sticky_active = true
         end
       else
-        -- Different object or first touch
+        -- Different object → exit previous, enter new
         if prev_obj and not prev_obj.dead and self._hover_state[prev_id] then
           if prev_obj.on_mouse_exit then prev_obj:on_mouse_exit() end
           self._hover_state[prev_id] = false
@@ -172,7 +180,7 @@ function Group:pre_touch_scan()
         end
       end
     else
-      -- Tapped empty space → clear sticky hover
+      -- Tapped empty space → clear sticky hover and suppress click
       if prev_obj and not prev_obj.dead then
         if self._hover_state[prev_id] then
           if prev_obj.on_mouse_exit then prev_obj:on_mouse_exit() end
@@ -181,6 +189,7 @@ function Group:pre_touch_scan()
       end
       self._touch_hover_obj_id = nil
       self._touch_hover_time = nil
+      self._touch_suppress_m1 = true
     end
   end
 end
@@ -248,7 +257,7 @@ function Group:update(dt)
         if not touched_obj then
           for _, object in ipairs(self.objects) do
             if not object.dead and object.interact_with_mouse and object.shape
-                and self._hover_state and self._hover_state[object.id] then
+                and _hit_test(object, mx, my) then
               touched_obj = object
               break
             end
@@ -256,6 +265,10 @@ function Group:update(dt)
         end
 
         if touched_obj then
+          if not self._hover_state[touched_obj.id] then
+            if touched_obj.on_mouse_enter then touched_obj:on_mouse_enter() end
+            self._hover_state[touched_obj.id] = true
+          end
           if prev_id == touched_obj.id then
             self._touch_hover_obj_id = nil
             input._touch_confirm_group = self
