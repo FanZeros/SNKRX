@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- ============================================================================
 -- SNKRX — UrhoX Entry Point
 -- ============================================================================
@@ -142,7 +143,7 @@ end
 -- Update
 -- ============================================================================
 ---@param eventType string
----@param eventData UpdateEventData
+---@param eventData table
 function HandleUpdate(eventType, eventData)
   local dt = eventData["TimeStep"]:GetFloat()
 
