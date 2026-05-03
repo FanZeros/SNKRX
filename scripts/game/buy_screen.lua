@@ -1272,7 +1272,9 @@ function CharacterPart:update(dt)
   if self.cant_click then return end
 
   if not self.parent:is(CharacterPart) then
-    if input.m1.pressed and self.colliding_with_mouse then
+    local mx, my = camera:get_mouse_position()
+    local mouse_on_self = self.shape and self.shape:is_colliding_with_point(mx, my)
+    if input.m1.pressed and mouse_on_self then
       -- Double-tap detection for sell
       local now = love.timer.getTime()
       if self._last_tap_time and (now - self._last_tap_time) <= 0.4 and not self.just_created then
