@@ -848,9 +848,22 @@ function Arena:die()
       -- Revive button (only if revives remaining)
       if revive_count < max_revives then
         self.revive_button = Button{group = self.ui, x = gw/2, y = gh/2 + 24, force_update = true,
-          button_text = '复活继续(' .. (max_revives - revive_count) .. '次)',
+          button_text = '看广告复活',
           fg_color = 'bg10', bg_color = 'bg', action = function(b)
-            self:revive()
+            if self._revive_requesting then return end
+            self._revive_requesting = true
+            sdk:ShowRewardVideoAd(function(result)
+              self._revive_requesting = false
+              if result.success then
+                self:revive()
+              else
+                if result.msg == "embed manual close" then
+                  self.death_info_text:set_text({{text = '[fg]需完整观看广告才能复活', font = pixul_font, alignment = 'center'}})
+                else
+                  self.death_info_text:set_text({{text = '[fg]广告不可用，请稍后重试', font = pixul_font, alignment = 'center'}})
+                end
+              end
+            end)
           end}
       end
       local restart_y = (revive_count < max_revives) and (gh/2 + 48) or (gh/2 + 24)
