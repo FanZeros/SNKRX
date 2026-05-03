@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- SNKRX Engine Tileset Module - NanoVG Adapter
 -- Loads a tileset image and provides quad-based tile drawing.
 -- Uses the same NanoVG image pattern + clipping approach as Quad.

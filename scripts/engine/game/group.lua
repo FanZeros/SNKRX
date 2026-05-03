@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- SNKRX Engine Group - UrhoX Adapter
 -- Replaces LÖVE2D's love.physics world management with UrhoX Physics2D scene.
 --

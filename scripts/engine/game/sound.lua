@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- SNKRX Engine Sound - UrhoX Adapter
 -- Replaces LÖVE2D's love.audio with UrhoX's SoundSource component.
 --

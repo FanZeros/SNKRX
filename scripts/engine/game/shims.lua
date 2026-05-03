@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- SNKRX Engine Shims - Missing API stubs for UrhoX
 -- Provides: love.timer, love.event, love.window, love.mouse,
 --           system (save/load/url), steam stubs, SoundTag, GradientImage,
