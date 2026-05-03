@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- SNKRX Engine Canvas Module - NanoVG Adapter (Record + Replay)
 -- NanoVG does not support render-to-texture, so Canvas uses a record+replay
 -- pattern: draw_to() records the draw action (closure), and draw() replays it

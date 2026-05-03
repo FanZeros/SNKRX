@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- SNKRX Engine Graphics Module - NanoVG Adapter
 -- Replaces LÖVE2D's love.graphics with NanoVG rendering.
 --
@@ -89,8 +90,8 @@ function Graphics:init_module()
   self.push = function(x, y, r, sx, sy)
     nvgSave(vg)
     if x and y then nvgTranslate(vg, x, y) end
-    if r and r ~= 0 then nvgRotate(vg, r) end
     if sx then nvgScale(vg, sx, sy or sx) end
+    if r and r ~= 0 then nvgRotate(vg, r) end
     if x and y then nvgTranslate(vg, -x, -y) end
   end
 
@@ -350,9 +351,10 @@ function Graphics:init_module()
         end
 
         Canvas.draw = orig_canvas_draw
-        for canvas, _ in pairs(drawn_canvases) do
-          canvas._draw_action = nil
-        end
+        -- Do NOT clear _draw_action here! This closure may be replayed multiple
+        -- times (shadow pass via draw2, then main pass via draw). Clearing here
+        -- would destroy star_canvas._draw_action after the first replay, making
+        -- subsequent replays draw nothing (the "hollow board" bug).
       else
         -- Non-inverted: draw content only INSIDE the mask rectangle
         nvgSave(vg)
@@ -876,8 +878,8 @@ function Layer:draw_commands_f()
     elseif c.type == 'push' then
       nvgSave(vg)
       nvgTranslate(vg, c.x, c.y)
-      if c.r ~= 0 then nvgRotate(vg, c.r) end
       if c.sx ~= 1 or c.sy ~= 1 then nvgScale(vg, c.sx, c.sy) end
+      if c.r ~= 0 then nvgRotate(vg, c.r) end
       nvgTranslate(vg, -c.x, -c.y)
 
     elseif c.type == 'pop' then

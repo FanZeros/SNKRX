@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- SNKRX Engine Camera Module - NanoVG Adapter
 -- Replaces LÖVE2D's love.graphics push/translate/scale/rotate/pop with NanoVG transforms.
 -- Also includes Shake class for camera shake effects.

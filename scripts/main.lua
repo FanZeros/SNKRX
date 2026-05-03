@@ -14,20 +14,6 @@ local Engine = require("engine.init")
 -- Save UrhoX engine globals that game modules will overwrite
 local _UrhoNode = Node  -- game/shared.lua defines Node = Object:extend()
 
--- Load game modules (order matters — later modules reference earlier ones)
-require("game.shared")
-require("game.objects")
-require("game.mainmenu")
-require("game.arena")
-require("game.buy_screen")
-require("game.player")
-require("game.enemies")
-require("game.media")
-
--- Load game data tables + init/update/draw/open_options/close_options
-require("game.data")
-
-
 -- ============================================================================
 -- Globals expected by the original SNKRX code
 -- ============================================================================
@@ -73,6 +59,12 @@ ww = 0
 wh = 0
 
 -- ============================================================================
+-- Game module loading flag
+-- ============================================================================
+local _game_modules_loaded = false
+local _game_init_ok = false
+
+-- ============================================================================
 -- UrhoX Entry Point
 -- ============================================================================
 function Start()
@@ -109,6 +101,30 @@ function Start()
   -- The global 'trigger' is used throughout the game for tweens/timers
   trigger = Trigger()
 
+  -- Subscribe to events FIRST (before game init, so NanoVG renders even on error)
+  SubscribeToEvent("Update", "HandleUpdate")
+  SubscribeToEvent(vg, "NanoVGRender", "HandleNanoVGRender")
+
+  -- Load game modules inside Start() so any require failure doesn't prevent
+  -- Start() from being defined and events from being subscribed.
+  local ok, err = pcall(function()
+    require("game.shared")
+    require("game.objects")
+    require("game.mainmenu")
+    require("game.arena")
+    require("game.buy_screen")
+    require("game.player")
+    require("game.enemies")
+    require("game.media")
+    require("game.data")
+  end)
+  if not ok then
+    print("[SNKRX] FATAL: Failed to load game modules: " .. tostring(err))
+    return
+  end
+  _game_modules_loaded = true
+  print("[SNKRX] Game modules loaded successfully")
+
   -- Call the game's init() function (from data.lua)
   -- This sets up:
   --   - shared_init() (colors, fonts, canvases, star system)
@@ -116,22 +132,21 @@ function Start()
   --   - Sound/Image/Music loading (~90 sounds, ~60 images)
   --   - All game data tables (characters, classes, passives, levels)
   --   - Main state machine: main = Main() → MainMenu
-  local ok, err = pcall(init)
+  ok, err = pcall(init)
   if not ok then
     print("[SNKRX] FATAL: init() failed: " .. tostring(err))
     return
   end
+  _game_init_ok = true
 
   print("[SNKRX] Game initialized successfully")
-
-  -- Subscribe to events
-  SubscribeToEvent("Update", "HandleUpdate")
-  SubscribeToEvent(vg, "NanoVGRender", "HandleNanoVGRender")
 end
 
 
 function Stop()
-  system.save_state()
+  if system and system.save_state then
+    pcall(system.save_state)
+  end
   if vg ~= nil then
     nvgDelete(vg)
     vg = nil
@@ -145,6 +160,8 @@ end
 ---@param eventType string
 ---@param eventData table
 function HandleUpdate(eventType, eventData)
+  if not _game_init_ok then return end
+
   local dt = eventData["TimeStep"]:GetFloat()
 
   -- Update engine systems (time, input, camera)
@@ -154,7 +171,7 @@ function HandleUpdate(eventType, eventData)
   if input then input.touch_zone_steering = false end
 
   -- Update global trigger (used for tweens/timers throughout the game)
-  trigger:update(dt)
+  if trigger then trigger:update(dt) end
 
   -- Update mouse position (in design resolution coordinates)
   -- mousePosition is in physical pixels → divide by DPR → logical pixels
@@ -204,11 +221,29 @@ function HandleNanoVGRender(eventType, eventData)
   nvgBeginFrame(vg, logW, logH, dpr)
 
   -- Draw background color (fill entire logical screen)
-  local bg_color = graphics.get_background_color()
-  nvgBeginPath(vg)
-  nvgRect(vg, 0, 0, logW, logH)
-  nvgFillColor(vg, nvgRGBAf(bg_color.r, bg_color.g, bg_color.b, bg_color.a or 1))
-  nvgFill(vg)
+  if graphics and graphics.get_background_color then
+    local bg_color = graphics.get_background_color()
+    nvgBeginPath(vg)
+    nvgRect(vg, 0, 0, logW, logH)
+    nvgFillColor(vg, nvgRGBAf(bg_color.r, bg_color.g, bg_color.b, bg_color.a or 1))
+    nvgFill(vg)
+  else
+    -- Fallback: dark background
+    nvgBeginPath(vg)
+    nvgRect(vg, 0, 0, logW, logH)
+    nvgFillColor(vg, nvgRGBAf(0.19, 0.19, 0.19, 1))
+    nvgFill(vg)
+  end
+
+  -- Show error message if game failed to load
+  if not _game_init_ok then
+    nvgFontSize(vg, 20)
+    nvgFillColor(vg, nvgRGBAf(1, 0.3, 0.3, 1))
+    nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE)
+    nvgText(vg, logW / 2, logH / 2, "[SNKRX] Game failed to initialize - check console logs")
+    nvgEndFrame(vg)
+    return
+  end
 
   -- Call the game's draw function (from data.lua)
   -- This calls shared_draw(function() main:draw() end)

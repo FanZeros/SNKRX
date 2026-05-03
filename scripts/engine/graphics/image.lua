@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- SNKRX Engine Image Module - NanoVG Adapter
 -- Replaces LÖVE2D's love.graphics.newImage with NanoVG image loading.
 

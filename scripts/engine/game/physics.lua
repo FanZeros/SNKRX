@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- SNKRX Engine Physics Mixin - UrhoX Physics2D Adapter
 -- Replaces LÖVE2D's love.physics with UrhoX's component-based Physics2D system.
 --
@@ -455,6 +456,9 @@ end
 --- Steering update: clamp velocity to max_speed and sync vx/vy for steering math.
 function Physics:steering_update(dt)
   if not self._steerable then return end
+  -- When being pushed (e.g. Juggernaut, Forcer), steering_enabled is set to false
+  -- by game code. We must skip velocity clamping so the push impulse is not negated.
+  if self.steering_enabled == false then return end
   local vx, vy = self:get_velocity()
   -- Expose vx/vy on the object for Steering static functions
   self.vx = vx

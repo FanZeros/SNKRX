@@ -175,7 +175,10 @@ function M.init(nvg_ctx)
 
     -- Create global singleton instances
     random = Random()
-    camera = Camera(dgw / 2, dgh / 2, gw, gh)
+    -- Camera position must match viewport center (gw/2, gh/2) to avoid net offset.
+    -- Original a327ex uses Camera(gw/2, gh/2) where gw==dgw. With viewport expansion
+    -- (gw > dgw), using dgw/2 causes a (gw-dgw)/2 rightward shift on all camera content.
+    camera = Camera(gw / 2, gh / 2, gw, gh)
 
     -- Create the SNKRX Graphics manager (overwrites UrhoX's graphics global)
     -- This is intentional — the engine adapter layer manages its own layer system

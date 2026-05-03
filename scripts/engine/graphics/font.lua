@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- SNKRX Engine Font Module - NanoVG Adapter
 -- Replaces LÖVE2D's love.graphics.newFont with NanoVG font creation.
 

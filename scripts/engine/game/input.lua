@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- SNKRX Engine Input - UrhoX Adapter
 -- Replaces LÖVE2D's love.keypressed/released callbacks with UrhoX input polling.
 --
