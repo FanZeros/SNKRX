@@ -1,727 +1,353 @@
-# FanZeros/SNKRX 改版分析报告
+# SNKRX Fork Analysis: FanZeros/SNKRX vs a327ex/SNKRX
 
-> 对比 a327ex/SNKRX 原版与 FanZeros/SNKRX 改版的详细差异分析。
-> 包含所有改动说明和丢弃设计的修复建议。
-
----
-
-## 目录
-
-1. [项目概述](#1-项目概述)
-2. [架构层面改动](#2-架构层面改动)
-3. [引擎适配层详细改动](#3-引擎适配层详细改动)
-4. [游戏逻辑层详细改动](#4-游戏逻辑层详细改动)
-5. [丢弃的原始设计与修复建议](#5-丢弃的原始设计与修复建议)
-6. [新增内容](#6-新增内容)
-7. [已知 BUG 与待办事项](#7-已知-bug-与待办事项)
+> FanZeros fork 将原版 SNKRX 从 LOVE2D 引擎移植到 UrhoX (NanoVG) 引擎的完整分析。
 
 ---
 
-## 1. 项目概述
+## 1. 总览
 
-**SNKRX** 是一个 roguelite 自走棋 + 贪吃蛇混合游戏。玩家操控一条英雄蛇，蛇身上的英雄自动攻击附近敌人。通过在商店购买/升级英雄，激活职业联动加成来推进关卡。
+| 指标 | 原版 (a327ex) | Fork (FanZeros) | 变化 |
+|------|:------------:|:---------------:|:----:|
+| **.lua 文件数** | 44 | 38 | -6 |
+| **总行数** | 22,689 | 20,662 | -2,027 |
+| **字节级完全一致的文件** | - | 30/38 (79%) | - |
+| **引擎** | LOVE2D (OpenGL + Box2D + LuaJIT) | UrhoX (NanoVG + Box2D + Lua 5.4) | - |
+| **渲染** | GPU framebuffer + shader pipeline | NanoVG 矢量绘制 (无 FBO、无自定义 shader) | - |
 
-| 项目 | a327ex (原版) | FanZeros (改版) |
-|------|-------------|----------------|
-| 引擎 | LÖVE2D (Lua + Box2D + OpenGL) | UrhoX (NanoVG + UrhoX Box2D) |
-| 文件数 | 398 | 593 |
-| 游戏代码行数 | ~12,100 行 | ~12,400 行 |
-| 引擎代码 | 原版自定义引擎 ~3,500 行 | 适配层 ~5,000 行 (48 文件) |
-| 语言 | 英语 | 简体中文 |
-| 平台 | PC (Steam) | UrhoX (移动端 + PC) |
-
-### 移植策略
-
-FanZeros 采用了「忠实移植」策略——保留原版几乎所有游戏逻辑和数值，通过编写一个 48 文件的**引擎适配层**将 LÖVE2D API 翻译为 UrhoX API。这与早期的「简化重写」（保存在 `scripts_snkrx_backup/`，仅 ~1,700 行）形成鲜明对比。
+**核心策略**: Fork 采用「薄兼容层」方案 — 在 `engine/init.lua` 中新增约 200 行 `love.*` API 垫片 (shim)，将 LOVE2D 调用映射到 UrhoX/NanoVG 等价操作，使原版 30 个游戏逻辑/引擎文件**无需任何修改**即可运行。
 
 ---
 
-## 2. 架构层面改动
+## 2. 文件状态一览
 
-### 2.1 目录结构重组
+### 2.1 完全一致 (30 个文件，字节级无差异)
 
-```
-a327ex (原版):                    FanZeros (改版):
-├── main.lua          ──────►    scripts/main.lua (UrhoX 入口)
-├── arena.lua                    scripts/game/data.lua (从 main.lua 拆出)
-├── buy_screen.lua    ──────►    scripts/game/arena.lua
-├── enemies.lua       ──────►    scripts/game/buy_screen.lua
-├── objects.lua       ──────►    scripts/game/enemies.lua
-├── player.lua        ──────►    scripts/game/objects.lua
-├── shared.lua        ──────►    scripts/game/player.lua
-├── mainmenu.lua      ──────►    scripts/game/shared.lua
-├── media.lua         ──────►    scripts/game/mainmenu.lua
-├── conf.lua                     scripts/game/media.lua
-├── engine/           ──────►    scripts/engine/ (48 文件适配层)
-│   ├── init.lua                 (新增 data.lua, conf.lua 被移除)
-│   ├── game/
-│   ├── graphics/
-│   ├── math/
-│   ├── datastructures/
-│   ├── external/      ✗ 移除
-│   ├── map/           ✗ 移除
-│   └── love/          ✗ 移除
-├── assets/
-│   ├── fonts/
-│   ├── images/        (原 media/)
-│   ├── sounds/
-│   ├── shaders/       ✗ 移除
-│   └── maps/          ✗ 移除
-└── builds/            ✗ 移除
-```
+**engine/game/ (17 个):**
+`animation.lua`, `camera.lua`, `color.lua`, `game_object.lua`, `group.lua`, `hitfx.lua`, `input.lua`, `music_player.lua`, `observer.lua`, `physics_world.lua`, `slow.lua`, `sound.lua`, `spring.lua`, `stats.lua`, `system.lua`, `text.lua`, `timer.lua`
 
-### 2.2 main.lua 拆分
+**engine/graphics/ (6 个):**
+`gradient_image.lua`, `image.lua`, `layer.lua`, `post_shader.lua`, `text.lua`, `texture.lua`
 
-原版 `main.lua` (2,144 行) 被拆分为两个文件：
+**engine/math/ (3 个):**
+`math.lua`, `steering.lua`, `vector2.lua`
 
-| 内容 | 去向 |
-|------|------|
-| UrhoX 生命周期 (Start/Update/NanoVGRender) | `scripts/main.lua` (~110 行) |
-| 全局变量初始化 (gold, passives, max_units...) | `scripts/main.lua` |
-| NanoVG 上下文创建和 DPR 计算 | `scripts/main.lua` |
-| `init()` 函数 (音效/图片加载, 角色数据, 职业定义) | `scripts/game/data.lua` (~2,100 行) |
-| `update(dt)` / `draw()` 调度 | `scripts/game/data.lua` |
-| 角色元数据表 (character_info) | `scripts/game/data.lua` |
-| 职业定义表 (class_info) | `scripts/game/data.lua` |
-| 被动道具表 (passive_info) | `scripts/game/data.lua` |
-| 关卡数据表 (level_info) | `scripts/game/data.lua` |
+**engine/datastructures/ (4 个):**
+`hashgrid.lua`, `heap.lua`, `linked_list.lua`, `matrix.lua`, `spatial_hash.lua`, `thread_pool.lua`
 
-### 2.3 游戏循环改造
+### 2.2 目录重组但内容一致 (8 个游戏文件)
 
-```
-原版 (LÖVE2D):                    改版 (UrhoX):
-love.event.pump()       ───►     SubscribeToEvent("Update")
-love.update(dt)         ───►     HandleUpdate(eventType, eventData)
-love.draw()             ───►     SubscribeToEvent("NanoVGRender")
-love.timer.sleep()      ───►     HandleNanoVGRender()
-                                 (引擎自动管理帧率)
-```
+原版根目录 → Fork `game/` 子目录，**内容完全一致**：
 
-### 2.4 渲染管线改造
+| 原版路径 | Fork 路径 | 行数 |
+|---------|----------|:----:|
+| `arena.lua` | `game/arena.lua` | 1,643 |
+| `buy_screen.lua` | `game/buy_screen.lua` | 547 |
+| `enemies.lua` | `game/enemies.lua` | 773 |
+| `mainmenu.lua` | `game/mainmenu.lua` | 52 |
+| `media.lua` | `game/media.lua` | 237 |
+| `objects.lua` | `game/objects.lua` | 2,296 |
+| `player.lua` | `game/player.lua` | 2,181 |
+| `shared.lua` | `game/shared.lua` | 329 |
 
-```
-原版 (LÖVE2D):                     改版 (UrhoX):
-love.graphics.* (即时模式)  ───►   NanoVG C API (即时模式)
-                                   + Layer 命令队列 (延迟渲染)
-love.graphics.newCanvas()  ───►   Canvas stub (record+replay)
-love.graphics.newShader()  ───►   Shader stub (仅 shadow alpha hack)
-love.graphics.stencil()    ───►   draw_with_mask stub (无遮罩)
-```
+### 2.3 修改的文件 (3 个)
+
+| 文件 | 原版行数 | Fork 行数 | 差异行数 | 改动性质 |
+|-----|:-------:|:--------:|:-------:|---------|
+| `main.lua` | 1,282 | 1,309 | +27 | require 路径、禁用 Steam/存档/音乐、入口函数重命名 |
+| `engine/init.lua` | 3,430 | 3,625 | +195 | **LOVE2D 兼容层** (~200 行)、UrhoX 主循环集成、变量重命名 |
+| `engine/datastructures/grid.lua` | 1,981 | 46 | **-1,935** | 寻路/网格可视化全部精简为最小 stub |
+
+### 2.4 删除的文件 (6 个)
+
+| 文件 | 行数 | 删除原因 |
+|-----|:----:|---------|
+| `conf.lua` | 19 | LOVE2D 窗口/引擎配置，UrhoX 不适用 |
+| `engine/external/utf8.lua` | 131 | UrhoX 原生支持 UTF-8 |
+| `engine/external/ffi_reflect.lua` | 55 | 依赖 LuaJIT FFI，UrhoX 使用 Lua 5.4 |
+| `engine/external/lovebird.lua` | 127 | LOVE2D 浏览器调试控制台 |
+| `engine/external/profile.lua` | 124 | 依赖 LuaJIT 的性能分析器 |
+| `engine/external/init.lua` (require 入口) | — | 随外部库一起移除 |
+
+### 2.5 新增的文件 (0 个)
+
+Fork **没有新增任何文件**。所有适配逻辑都内嵌在 `engine/init.lua` 的 LOVE2D 兼容层中。
 
 ---
 
-## 3. 引擎适配层详细改动
-
-### 3.1 init.lua — 引擎启动器
-
-| 方面 | 原版 | 改版 |
-|------|------|------|
-| 窗口初始化 | `love.window.setMode(480*sx, 270*sy)` | 读取 `urho_graphics:GetWidth()/GetHeight()` + DPR |
-| 游戏循环 | `love.run()` 回调 | 模块导出 `M.init/update/draw` |
-| 音频初始化 | `love.audio.setEffect()` | UrhoX SoundSource 组件 |
-| Steam | `steam.init()` | 已移除 |
-| 全局变量 | `slow_amount` 等散落各处 | 集中在 `main.lua` 初始化 |
-
-### 3.2 physics.lua — 物理系统 (关键文件)
-
-**保留**：所有物理 API 签名 (`set_as_rectangle`, `set_as_circle`, `set_velocity`, `apply_force` 等)
-
-**改造**：
-- `love.physics.newBody/newFixture` → UrhoX `RigidBody2D` + `CollisionBox2D/CollisionCircle2D` 组件
-- 角度从弧度 ↔ 度数转换 (LÖVE 用弧度, UrhoX 用度数)
-- 碰撞过滤从 LÖVE 的 category index → UrhoX 的 bitmask 位运算
-- `fixture:getUserData()` → `_node_to_object` 查找表
-
-**新增**：内联的简化版 steering 方法 (`set_as_steerable`, `seek_point`, `steering_separate`, `apply_steering_force`, `apply_steering_impulse`, `steering_update`, `bounce`) — 这些方法存在于代码中但 **MISSING_API_REPORT 指出它们可能未被正确集成到 Physics mixin** (详见第 5 章)。
-
-### 3.3 steering.lua — 转向行为系统
-
-| 方面 | 原版 | 改版 |
-|------|------|------|
-| 架构 | 集成到 Physics mixin, 使用 heading/side 向量 | 独立 `Steering` 类, 静态方法 |
-| 坐标转换 | `C2DMatrix` 矩阵变换 | 直接角度计算 |
-| Wander | heading/side 投影 + 随机扰动 | 角度随机偏移 |
-| 新增行为 | - | `arrive`, `pursue`, `evade`, `alignment`, `cohesion`, `path_follow` |
-
-**问题**：改版存在**双重 steering 系统** — physics.lua 中的内联方法 + 独立的 Steering 类。两者 API 不同、互相独立，游戏代码调用的是 physics.lua 中的版本。
-
-### 3.4 graphics.lua — 绘图系统
-
-**保留**：所有绘图函数签名 (`rectangle`, `circle`, `line`, `polygon`, `print` 等)
-
-**改造**：
-- 所有 `love.graphics.*` → NanoVG 等价 (`nvgRect`, `nvgCircle`, `nvgText` 等)
-- 新增 **Layer 延迟渲染系统**：绘图调用在 update 期间被排队为命令对象，在 NanoVGRender 事件中统一回放
-- 颜色模型：LÖVE (0-1 浮点) → NanoVG (0-255 整数)
-- `set_line_width()` 已正确实现 (`nvgStrokeWidth`)
-- `draw_with_mask()` 已使用 NanoVG scissor 4-pass 方案重写 ✅ (详见 5.4 节)
-
-**移除**：
-- `stencil()` 函数
-- `ellipse()`, `rounded_line()`, `set_shader()`
-
-**新增**：
-- `gradient_rect()` (使用 `nvgLinearGradient`)
-- `rounded_rectangle()` (使用 `nvgRoundedRect`)
-- `text_wrapped()` + 自动换行
-- 多 Layer 管理 (add_layer, set_layer, z 排序)
-- **Shadow mode 基础设施** ✅：模块级 `_shadow_mode` 标志，控制 `set_nvg_color`/`reset_nvg_color`/`set_color` 在阴影模式下输出 `rgba(0.1, 0.1, 0.1, a*0.5)`，匹配原版 GLSL shadow shader
-- `set_shadow_mode(enabled)` / `get_shadow_mode()` 访问器
-
-### 3.5 canvas.lua — 离屏渲染 (Record+Replay 方案, 已评估为可用 ✅)
-
-| 方面 | 原版 | 改版 |
-|------|------|------|
-| 后端 | `love.graphics.newCanvas()` (GPU 渲染目标) | Record+Replay 闭包 (无真实离屏缓冲) |
-| `draw_to(action)` | 切换渲染目标到 Canvas, 执行 action | 存储闭包引用 |
-| `draw()` | 将 Canvas 纹理绘制到屏幕, 带清除 | 在 `nvgSave/nvgRestore` 中回放闭包, 执行后清除 `_draw_action` |
-| `draw2()` | (不存在) | 回放闭包但 **不** 清除 (用于阴影 pass 复用 main_canvas 内容) |
-| `clear()` | 清空 GPU 缓冲 | 设 `_action = nil` |
-| 混合模式 | 预乘 alpha | 不支持 |
-
-**评估结论**: Record+Replay 模式对于 SNKRX 的实际渲染管线是 **足够的**：
-- `shared_draw()` 中的 bg → shadow → main 三通道合成通过闭包回放正确实现
-- `draw2()` (无清除版本) 正确支持 shadow_canvas 复用 main_canvas 内容
-- 设计分辨率缩放通过 `nvgScale(sx, sy)` 正确实现
-- 主要差异（无像素隔离、无预乘 alpha 混合）对 SNKRX 的视觉效果影响可接受
-
-### 3.6 shader.lua — 着色器 (shadow shader 已修复 ✅, 其他 stub)
-
-- `set()` → 检测 shadow shader 时调用 `graphics.set_shadow_mode(true)`, 使所有绘图颜色变为 `rgba(0.1, 0.1, 0.1, a*0.5)`, 匹配原版 GLSL
-- `unset()` → 调用 `graphics.set_shadow_mode(false)` 恢复正常颜色
-- `send()` → no-op (NanoVG 不支持 shader uniforms)
-- 非 shadow 的其他 shader (combine, displacement, replace) 仍为 no-op
-
-### 3.7 font.lua — 字体系统
-
-**改造**：
-- `love.graphics.newFont()` → `nvgCreateFont()` + 多路径回退
-- `get_text_width()` → `nvgTextBounds()` (但传入 Lua table 代替 `float[4]` 指针, 可能存在兼容性问题)
-- 新增 MiSans-Regular.ttf 回退字体
-
-### 3.8 group.lua — 对象管理
-
-**保留**：所有对象管理 API (`add_object`, `remove_object`, `get_objects_by_class`, `get_closest_object` 等)
-
-**改造**：
-- `love.physics.newWorld()` → UrhoX `PhysicsWorld2D` 组件
-- 碰撞回调：`world:setCallbacks()` → `SubscribeToEvent("PhysicsBeginContact2D"/"PhysicsEndContact2D")`
-- 对象查找：`fixture:getUserData()` → `_node_to_object` 映射表
-
-**新增**：
-- 完整的触摸/移动端交互系统 (touch zone steering, sticky hover, double-tap confirmation)
-
-### 3.9 input.lua — 输入系统
-
-**改造**：
-- LÖVE 事件驱动 → 每帧轮询 `urho_input:GetKeyDown(KEY_*)`
-- 完整的 LÖVE→UrhoX 按键映射表 (~80 个键)
-- 新增触摸设备检测和屏幕区域分区操作
-
-**移除**：
-- 手柄/游戏控制器支持 (仅保留空的 `gamepad_state`)
-
-### 3.10 新增的引擎文件
-
-| 文件 | 来源 | 功能 |
-|------|------|------|
-| `shims.lua` | 部分提取 + 新写 | LÖVE/Steam API 存根; 存档系统 (cjson + UrhoX File); SoundTag; Contact 包装 |
-| `anchor.lua` | 全新 | 屏幕锚点位置计算 (`'center'`, `'top_left'` 等) |
-| `collision.lua` | 全新 | 纯数学碰撞检测 (AABB, 圆形, 点, 线段), 用于触摸检测 |
-| `container.lua` | 全新 | 轻量对象容器 (无物理, 无 Layer) |
-| `draft.lua` | 全新 | 带权重随机抽取 + 不放回 |
-| `music.lua` | 提取重写 | 音乐播放 (UrhoX SoundSource + 循环) |
-| `sound.lua` | 提取重写 | 音效播放 (UrhoX SoundSource + SoundTag 音量) |
-| `observer.lua` | 全新 | 发布-订阅事件系统 |
-| `stats.lua` | 全新 | 属性键值存储 |
-| `stepper.lua` | 全新 | 往复迭代器 (ping-pong) |
-| `system.lua` | 提取简化 | 仅保留 `get_average_delta()` |
-| `timer.lua` | 全新 | 简单计时器 (非 Trigger, 仅累计时间) |
-| `layer.lua` | 提取 | 独立 Layer 类 (可能未使用, graphics.lua 内有同名类) |
-| `shaders.lua` | 全新 | `load_shader()` 返回 stub 对象 |
-
-### 3.11 移除的原版引擎文件
-
-| 文件/目录 | 原版功能 | 移除原因 |
-|-----------|---------|---------|
-| `external/binser.lua` | 二进制序列化 | 被 cjson 替代 |
-| `external/clipper.lua` | 多边形裁剪 | SNKRX 未使用 |
-| `external/mlib.lua` | 数学库 | UrhoX 内置数学 |
-| `external/ripple.lua` | 音频混合器 | 被 UrhoX SoundSource 替代 |
-| `datastructures/graph.lua` | 图数据结构 | SNKRX 未使用 |
-| `datastructures/grid.lua` | 网格数据结构 | SNKRX 未使用 |
-| `map/solid.lua` | 实体碰撞地图 | SNKRX 未使用 |
-| `map/tilemap.lua` | 瓦片地图 | SNKRX 未使用 |
-| `love/` 目录 | LÖVE 框架二进制 + Steam DLL | 不需要 |
-
----
-
-## 4. 游戏逻辑层详细改动
-
-### 4.1 总体特征
-
-FanZeros 对游戏逻辑的改动可以概括为：
-
-1. **极高保真度** — 所有角色数值、职业加成、被动道具、关卡配置、伤害公式完全保留
-2. **全面汉化** — 所有英文 UI 文本替换为简体中文
-3. **移除 Steam** — 所有 Steam 成就/富文本状态相关代码移除
-4. **移动端适配** — 添加触摸输入、屏幕分区操作
-5. **少量 Bug 修复** — nil 安全检查、数组越界保护
-
-### 4.2 各文件详细改动
-
-#### data.lua (从原版 main.lua 提取)
-
-**保留**：
-- 全部 50+ 角色元数据 (character_info 表)
-- 全部 16 个职业定义 (class_info 表)
-- 全部 70+ 被动道具定义 (passive_info 表)
-- 全部 25 级关卡数据 (level_info 表)
-- 全部 ~100 个音效加载
-- 全部 ~60 个图片加载
-- 颜色方案定义
-
-**改动**：
-- 音效路径格式：`'sounds/xxx.ogg'` → `'sounds/xxx.ogg'` (保持一致, 但 Sound 构造函数内部处理路径)
-- 图片路径：`'images/xxx.png'` (保持一致)
-- `love.graphics.newFont()` → `Font('name', size)`
-- 新增 `open_options()` / `close_options()` 菜单处理函数
-
-**移除**：
-- Steam 初始化 (`steam.init()`, `steam.setRichPresence()`)
-- Steam 成就检查和解锁代码
-- Steam DLC 检查
-- `love.window.setIcon()`
-- `love.audio.setEffect()`
-
-#### arena.lua — 战斗场景
-
-**保留**：
-- 物理世界创建和碰撞组设置
-- 敌人生成逻辑和难度曲线
-- Boss 生成规则 (每 6 关 + 25 关后)
-- 关卡清除和失败条件
-- 设计分辨率坐标 (gw/gh 体系)
-
-**改动**：
-- `gw` 使用 `dgw` (动态设计宽度) 适配宽屏
-- 战斗场景宽度从固定 `gw-20` 改为 `dgw-20`, 支持超宽屏
-- 触摸事件处理 (`pre_touch_scan`, touch zone steering)
-
-**移除**：
-- Steam 成就触发 (`steam.setAchievement()`)
-- Steam 状态更新 (`steam.setRichPresence()`)
-
-#### buy_screen.lua — 商店界面
-
-**保留**：
-- 角色卡牌选择/购买/出售逻辑
-- 重掷机制和费用
-- 升级系统 (3 合 1 → Lv.2 → Lv.3)
-- 职业联动显示
-- 被动道具购买
-- 所有数值和公式
-
-**改动**：
-- 全部英文 UI 文本 → 简体中文:
-  - `"Reroll"` → `"刷新"`
-  - `"Go!"` → `"开始!"`
-  - `"Lv.X"` → `"等级X"`
-  - `"Party"` → `"队伍"`
-  - `"Items"` → `"道具"`
-  - 所有职业/角色名称汉化
-  - 所有技能描述汉化
-- 布局微调适配中文文本宽度
-- 触摸友好的按钮尺寸
-
-**移除**：
-- Steam 成就检查和触发
-
-#### enemies.lua — 敌人系统
-
-**保留**：
-- `Seeker` 类及其所有 Boss 变体 (speed_booster, forcer, swarmer, exploder, randomizer)
-- `EnemyProjectile` 和 `EnemyCritter`
-- 所有 AI 行为和攻击模式
-- 所有数值 (HP, 伤害, 移速, 冷却时间)
-
-**改动**：
-- steering 方法调用保持不变 (依赖 physics.lua 提供的适配)
-- `math.atan2` → `math.atan` (Lua 5.4 兼容)
-
-#### player.lua — 玩家/英雄系统
-
-**保留**：
-- 全部 50+ 角色的攻击/技能逻辑
-- 全部数值 (HP, DMG, ASPD, area, defense 等)
-- 贪吃蛇移动逻辑 (leader + follower)
-- 自动瞄准和攻击系统
-- Lv.3 特殊效果
-- 被动道具效果
-
-**改动**：
-- `math.atan2` → `math.atan` (Lua 5.4 兼容)
-- 少量 nil 安全检查 (如 `if self.leader and ...`)
-
-#### shared.lua — 共享渲染
-
-**保留**：
-- 颜色方案和 ColorRamp
-- Star 背景粒子
-- SpawnEffect 生成特效
-- 基础绘图辅助函数
-
-**改动**：
-- `shared_draw()` 中的多通道渲染管线保持逻辑结构, 但因 Canvas/Shader 是 stub 而实际效果降级
-- `draw_with_mask()` 中 mask 参数被忽略
-
-#### objects.lua — 游戏对象
-
-**保留**：
-- `LightningLine` 闪电效果
-- `HitCircle` / `HitParticle` 打击反馈
-- `Wall` / `WallCover` 墙壁
-- `Unit` mixin
-
-**改动**：少量适配性修改
-
-#### mainmenu.lua — 主菜单
-
-**保留**：
-- Demo 战斗背景展示
-- 开始按钮
-
-**改动**：
-- 标题文本 `"SNKRX"` → `"蛇蛇小队"`
-- 触摸交互支持
-
-#### media.lua — 媒体状态
-
-**保留**：基本结构不变
-**改动**：文本汉化
-
----
-
-## 5. 丢弃的原始设计与修复建议
-
-### 5.1 ✅ RESOLVED: Steering 行为系统 (已验证正常工作)
-
-**原始问题描述**：
-
-MISSING_API_REPORT 指出 steering 行为方法可能未正确集成, 在 27+ 个调用点存在崩溃风险。
-
-**实际验证结果**：
-
-经过逐行审查 `physics.lua`, 确认 FanZeros 已在最新代码中 **完整实现了全部 8 个 steering 方法**, 并正确集成到 Physics mixin 中：
-
-| 方法 | 行号 | 状态 |
-|------|------|------|
-| `set_as_steerable(max_v, max_force, max_turn, sr)` | ~480 | ✅ 正确初始化所有 steering 属性 |
-| `seek_point(tx, ty)` | ~495 | ✅ 累加求力向量 |
-| `wander(angle, ratio, rs)` | ~508 | ✅ 随机角度偏移 + 速度目标 |
-| `steering_separate(radius, classes)` | ~520 | ✅ 查询同组对象排斥力 |
-| `apply_steering_force(force, angle)` | ~545 | ✅ 角度转向力 |
-| `apply_steering_impulse(force, angle, dur)` | ~552 | ✅ trigger:during 持续施力 |
-| `steering_update(dt)` | ~560 | ✅ 截断力→施力→截断速度→更新朝向→重置 |
-| `bounce(dt, bounciness)` | ~580 | ✅ 边界反弹 |
-
-关键集成点：`update_physics(dt)` 函数内部自动调用 `steering_update(dt)` 和 `bounce(dt)`, 确保每帧执行。
-
-**所有 26 个游戏调用点** (player.lua 15 处 + enemies.lua 11 处) 的函数签名均与实现匹配, 无崩溃风险。
-
-**结论**: MISSING_API_REPORT 基于旧版代码编写, FanZeros 在后续提交中已修复此问题。无需额外修改。
-
-### 5.2 ✅ ASSESSED: Canvas 离屏渲染 (Record+Replay 方案足够)
-
-**原始问题描述**：
-
-原版使用 LÖVE 的 `love.graphics.newCanvas()` 实现真正的 GPU 离屏渲染。改版替换为 Record+Replay 闭包模式。
-
-**实际评估结果**：
-
-对 `shared_draw()` 渲染管线进行逐步跟踪后, 确认 Record+Replay 方案对 SNKRX 的实际需求 **足够**：
-
-1. **设计分辨率缩放** ✅: `Canvas:draw(0, 0, 0, sx, sy)` 通过 `nvgScale(sx, sy)` 正确实现
-2. **阴影 pass** ✅: `shadow_canvas:draw2()` (不清除) 正确复用 `main_canvas` 内容, 配合 shadow shader 偏移渲染
-3. **多通道合成** ✅: bg → shadow → main 的绘制顺序通过闭包回放正确维持
-4. **闪烁效果** ⚠️: 无法实现像素级混合模式, 但对 SNKRX 影响极小
-
-**与原版的差异 (可接受)**：
-- 无像素隔离: 同一 Canvas 的两次 `draw2()` 调用会重叠而非分别渲染
-- 无预乘 alpha 混合: 半透明叠加效果略有差异
-- 无真实缓冲: Canvas 清除 = 丢弃闭包引用, 不影响功能
-
-**结论**: 当前方案无需修改。如未来需要更精确的像素级合成, 可考虑使用 UrhoX 的 `nvgluCreateFramebuffer()` API 实现真实 FBO。
-
-### 5.3 ✅ FIXED: Shader 阴影着色器 (shadow mode 颜色覆写)
-
-**原始问题描述**：
-
-原版 `shadow.frag` GLSL: `vec4(0.1, 0.1, 0.1, Texel(texture, tc).a * 0.5)` — 将所有像素替换为深灰色, 保留 alpha 的 50%。改版使用 `nvgGlobalAlpha(0.12)`, 效果错误：颜色仍是原色 (只是变透明了), 且 0.12 透明度太淡。
-
-**修复方案**：
-
-引入 **shadow mode** 机制, 在 `graphics.lua` 中添加模块级 `_shadow_mode` 标志：
+## 3. 修改文件详解
+
+### 3.1 `main.lua` — 入口改动
+
+**改动量**: +27 行 (主要是注释掉旧逻辑 + 路径调整)
+
+| 改动项 | 原版 | Fork | 说明 |
+|-------|------|------|------|
+| **require 路径** | `require 'engine'` | `require 'engine.init'` | 目录重组 |
+| **游戏模块路径** | `require 'arena'` | `require 'game.arena'` | 移入 `game/` 子目录 |
+| **Steam 集成** | `steam = require 'luasteam'` | 注释掉 | UrhoX 不支持 Steam API |
+| **存档加载** | `love.filesystem.read('save')` + `loadstring()` | 注释掉，使用硬编码默认值 | 存档系统未实现 |
+| **音乐系统** | `love.audio.newSource(...)` | 注释掉 | 音频适配层未完成 |
+| **窗口模式** | `love.window.setMode(gw/sx, gh/sy)` | 注释掉，`sx=sy=1` | UrhoX 不支持窗口模式设置 |
+| **graphics.init** | `graphics.init({...})` | `graphics.init({...}, gw, gh)` | 需要显式传入设计分辨率 |
+| **存档保存** | `system.save('save', {...})` | 注释掉 | 配合存档加载一起禁用 |
+| **音效路径** | `Sound('hit1.ogg')` | `Sound('Sounds/hit1.ogg')` | UrhoX 资源路径规范 |
+| **入口函数** | `love.run()` | `run()` | 由 UrhoX 的 `Start()` 调用 |
+
+### 3.2 `engine/init.lua` — 核心适配层
+
+这是 Fork 的**核心改动**，包含三类变化：
+
+#### A. LOVE2D 兼容层 (~200 行新增)
+
+在文件顶部新增了完整的 `love.*` API 垫片：
+
+```
+love.math      → 转发到 Lua math 标准库
+love.timer     → 使用 UrhoX time:GetElapsedTime()
+love.graphics  → NanoVG 绘图函数 (rectangle/circle/line/polygon/print/push/pop/...)
+love.mouse     → UrhoX input:GetMousePosition()
+love.keyboard  → UrhoX input:GetKeyDown() + 按键映射表
+love.window    → 返回逻辑分辨率 / no-op
+love.filesystem→ stub (setIdentity/read/write 未实现)
+love.audio     → stub (LoveSource 对象，play/stop 等空实现)
+love.system    → 返回 "Web"
+love.event     → quit() 空操作
+love.joystick  → 返回空数组
+love.image     → newImageData() 空实现
+```
+
+#### B. UrhoX 主循环集成 (~50 行新增)
 
 ```lua
--- graphics.lua 新增:
-local _shadow_mode = false
-
--- 当 shadow mode 开启时, 所有颜色输出函数自动替换为:
--- rgba(0.1, 0.1, 0.1, originalAlpha * 0.5)
--- 影响: set_nvg_color(), reset_nvg_color(), set_color()
-
--- shader.lua 重写:
-function Shader:set()
-    if self._is_shadow then
-        graphics.set_shadow_mode(true)  -- 替代 nvgGlobalAlpha(0.12)
-    end
-end
-
-function Shader:unset()
-    if self._is_shadow then
-        graphics.set_shadow_mode(false)
-    end
-end
+function Start()           -- UrhoX 入口: 创建 Scene、Camera、NanoVG 上下文
+function HandleUpdate()    -- 每帧调用游戏主循环
+function HandleNanoVGRender()  -- NanoVG 渲染: 执行延迟绘制队列
 ```
 
-**效果**: 阴影颜色从「半透明原色」修正为「深灰色半透明」, 匹配原版 GLSL 输出。
+关键设计：**延迟绘制 (Deferred Draw Calls)**
 
-**未修复的其他 shader**:
-- `combine.frag` — 通道合成 (NanoVG 无法模拟, 但 Record+Replay Canvas 已通过绘制顺序替代)
-- `displacement.frag` — 位移效果 (仅在特殊场景使用, 影响极小)
-- `replace.frag` — 颜色替换 (需要 per-pixel 操作, NanoVG 无法实现)
-
-### 5.4 ✅ FIXED: draw_with_mask() 遮罩 (NanoVG scissor 4-pass)
-
-**原始问题描述**：
-
-原版使用 LÖVE 的 stencil 功能实现遮罩绘制。改版的 `draw_with_mask()` 忽略 mask_fn, 直接执行 draw_fn, 导致背景星星铺满全屏。
-
-**修复方案**：
-
-使用 **函数拦截 + NanoVG scissor 4-pass 渲染**:
-
-1. **拦截 mask 定义**: 临时替换 `camera.attach`, `camera.detach`, `graphics.rectangle`, 执行 `mask_action()` 来捕获遮罩矩形的坐标和尺寸, 但不实际绘制
-2. **坐标转换**: 将捕获的设计分辨率坐标 (camera 空间) 转换为屏幕坐标: `screen_x = (world_x - cam.x) * cam.sx + cam.w/2`
-3. **4-pass 反向遮罩**: 对于 `inverted=true` (SNKRX 的所有 3 个调用点都是 inverted), 将屏幕分为遮罩矩形 **外** 的 4 个矩形条带 (上、下、左、右), 在每个条带内用 `nvgScissor()` 裁剪后执行 `action()`
-4. **Canvas 清除问题处理**: 因 `Canvas:draw()` 执行后会清除闭包引用, 在 4-pass 期间临时将 `Canvas.draw` 替换为 `Canvas.draw2` (不清除版本), 确保 4 次回放都能正常执行
-
-**游戏中的 3 个调用点**:
-- `arena.lua:763` — 星星在竞技场矩形外显示, inverted=true
-- `mainmenu.lua:205` — 星星在菜单矩形外显示, inverted=true
-- `buy_screen.lua:252` — 星星在商店矩形外显示, inverted=true
-
-**限制**: 仅支持矩形遮罩 (NanoVG scissor 的固有限制), 但 SNKRX 的所有遮罩调用都是矩形, 因此完全满足需求。
-
-### 5.5 ✅ RESOLVED: graphics.set_line_width() (已由 FanZeros 实现)
-
-**原始问题描述**：
-
-MISSING_API_REPORT 指出 `graphics.set_line_width()` 缺失, `buy_screen.lua` 调用会崩溃。
-
-**实际验证结果**：
-
-`graphics.lua` 第 ~108 行已正确实现:
-
-```lua
-self.set_line_width = function(w)
-    if vg then nvgStrokeWidth(vg, w or 1) end
-end
+```
+游戏逻辑调用 love.graphics.rectangle(...)
+  ↓ 捕获参数，存入 _drawCalls 队列
+  ↓
+HandleNanoVGRender 事件触发
+  ↓ 在 nvgBeginFrame/nvgEndFrame 之间遍历 _drawCalls 执行真正的 NanoVG 绘制
 ```
 
-**结论**: 与 Steering 同理, MISSING_API_REPORT 基于旧版代码。FanZeros 在后续提交中已修复。
+这是因为 NanoVG 只能在 `NanoVGRender` 事件回调中绘制，不能在 `Update` 中直接调用。
 
-### 5.6 🟡 MEDIUM: Font:get_text_width() 可能的 API 不匹配
+#### C. 变量重命名 (~50 处)
 
-**问题描述**：
+整个文件中将单字母变量重命名为更具可读性的名称：
 
-`font.lua` 中的 `get_text_width()` 调用 `nvgTextBounds(vg, 0, 0, text, nil, bounds)` 时传入 `bounds = {0,0,0,0}` (Lua table)。NanoVG 的 C API 期望 `float[4]` 指针。如果 UrhoX 的 Lua 绑定不回写 table 值, 所有文本宽度测量将返回 0。
+| 原版 | Fork | 上下文 |
+|-----|------|-------|
+| `n` | `new` | `table.copy()`, `table.deep_copy()` |
+| `i` | `idx` | `table.reverse()` |
+| `n` | `length` | `table.reverse()` |
+| `e` | `elem` | `table.contains()` |
 
-**影响**：文本可能堆叠在同一位置, 富文本布局完全错乱。
+### 3.3 `engine/datastructures/grid.lua` — 大幅精简
 
-**修复建议**：
+| 项目 | 原版 | Fork |
+|-----|:----:|:----:|
+| 行数 | 1,981 | 46 |
+| 删除率 | - | **97.7%** |
 
-需要运行时验证。如果确认不工作:
+**原版功能**: 完整的网格/寻路系统，包含 A* 算法、流场、可视化调试绘制（大量 `love.graphics` 调用）
 
-```lua
-function Font:get_text_width(text)
-    nvgFontFace(vg, self.tag)
-    nvgFontSize(vg, self.size)
-    -- 方案 A: 使用 nvgTextBounds 的返回值 (如果绑定支持多返回值)
-    local advance = nvgTextBounds(vg, 0, 0, text, nil, nil)
-    if advance and advance > 0 then return advance end
-    -- 方案 B: 使用 nvgText 的返回值 (返回下一个字符的 x 位置)
-    -- 这需要确认 UrhoX 的绑定行为
-    return #text * self.size * 0.6  -- 最坏情况: 估算
-end
-```
+**Fork 保留**: 仅保留 `Grid:init()` 构造函数（创建二维单元格数组），其余全部移除
 
-### 5.7 🟢 LOW: 手柄/游戏控制器支持丢失
-
-**问题描述**：原版支持游戏手柄 (joystick/gamepad), 改版完全移除。
-
-**影响**：仅在需要手柄支持时需要修复。
-
-**修复建议**：通过 UrhoX 的 `input:GetJoystickByIndex()` API 实现。
-
-### 5.8 🟢 LOW: Steam 成就系统丢失
-
-**问题描述**：原版有 30+ 个 Steam 成就, 改版全部移除。
-
-**影响**：如果需要成就系统, 需要替换为 UrhoX 平台的成就 API。
-
-**修复建议**：这是平台相关的, 需要接入 TapTap 或其他平台的成就 SDK。暂时可以保留本地成就记录:
-
-```lua
--- 本地成就系统
-local achievements = {}
-function unlock_achievement(id)
-    if not achievements[id] then
-        achievements[id] = true
-        system.save_state('achievements', achievements)
-        -- 显示成就弹窗
-    end
-end
-```
-
-### 5.9 🟢 LOW: 音乐 pitch 联动丢失
-
-**问题描述**：原版的慢动作效果会同步降低音乐播放速率 (pitch), 改版的 Music 类虽有 `__newindex` 同步机制, 但 tween 系统可能未自动触发属性同步。
-
-**修复建议**：确认 `trigger:tween()` 修改 `music.pitch` 时, `Music.__newindex` 被正确触发并调用 `SoundSource:SetFrequency()`。
+**精简原因**: Grid 的 A*/流场/可视化功能依赖 `love.graphics` 的 Canvas 和 shader，且 SNKRX 游戏实际不使用网格寻路（使用 steering behavior 导航），保留构造函数仅为防止 `Grid:init()` 调用报错。
 
 ---
 
-## 6. 新增内容
-
-### 6.1 简体中文本地化
-
-全部 UI 文本从英文替换为简体中文, 包括:
-- 菜单文本: `"Start"` → `"开始"`, `"Settings"` → `"设置"`
-- 商店文本: `"Reroll"` → `"刷新"`, `"Go!"` → `"开始!"`
-- 职业名称: `"Warrior"` → `"战士"`, `"Ranger"` → `"游侠"` 等
-- 角色名称: `"Vagrant"` → `"流浪者"`, `"Swordsman"` → `"剑士"` 等
-- 技能描述: 全部汉化
-- 游戏标题: `"SNKRX"` → `"蛇蛇小队"`
-
-### 6.2 移动端触摸支持
-
-Group 系统新增完整的触摸交互:
-- 屏幕左右分区操控 (左半区 = 左转, 右半区 = 右转)
-- 粘性 hover (触摸设备上 hover 态保持直到点击其他位置)
-- 双击确认 (防止误操作)
-- 触摸目标优先级扫描
-
-### 6.3 宽屏适配
-
-新增 `dgw` (动态设计宽度) 概念, arena 和 UI 根据实际宽高比动态调整, 而非固定 480 像素宽度。
-
-### 6.4 游戏设计文档
-
-新增 `docs/characters-and-classes.md`, 包含:
-- 16 个职业的详细描述和激活条件
-- 46 个角色的属性和技能描述 (中文)
-- 推荐组队阵容
-
-### 6.5 MISSING_API_REPORT.md
-
-详尽的 API 差距分析报告, 列出所有 CRITICAL/HIGH/MEDIUM/LOW 级别的缺失功能, 是后续开发的重要参考。
-
----
-
-## 7. 已知 BUG 与待办事项
-
-### 7.1 已修复的问题 ✅
-
-| 原优先级 | 问题 | 修复方式 | 修复者 |
-|----------|------|---------|--------|
-| 🔴 P0 | steering 方法崩溃风险 | 已验证: FanZeros 在最新代码中已完整实现 | FanZeros |
-| 🔴 P0 | `graphics.set_line_width()` 缺失 | 已验证: FanZeros 在最新代码中已实现 | FanZeros |
-| 🟡 P1 | Shader shadow 效果错误 | shadow mode 颜色覆写, 替代 globalAlpha hack | 本次修复 |
-| 🟡 P1 | draw_with_mask stub 无遮罩 | NanoVG scissor 4-pass 反向裁剪 | 本次修复 |
-| 🟡 P1 | Canvas stub 离屏渲染 | 评估为: Record+Replay 方案对 SNKRX 足够 | 评估通过 |
-
-### 7.2 视觉降级问题 (可运行, 效果可接受)
-
-| 优先级 | 问题 | 文件 | 影响 |
-|--------|------|------|------|
-| 🟡 P2 | Font:get_text_width 可能返回 0 | `scripts/engine/graphics/font.lua` | 需运行时验证 |
-| 🟡 P2 | 非 shadow shader 仍为 stub | `scripts/engine/graphics/shader.lua` | combine/displacement/replace 效果丢失 |
-| 🟡 P2 | Canvas 无像素隔离和混合模式 | `scripts/engine/graphics/canvas.lua` | 半透明叠加效果略有差异 |
-
-### 7.3 功能缺失 (非核心)
-
-| 优先级 | 问题 | 影响 |
-|--------|------|------|
-| 🟢 P3 | 手柄支持 | 无法使用游戏控制器 |
-| 🟢 P3 | Steam 成就 | 无成就系统 |
-| 🟢 P3 | 音乐 pitch 联动 | 慢动作时音乐速度不变 |
-| 🟢 P4 | GradientImage 重复定义 | 调试困惑, 无运行时影响 |
-
-### 7.4 建议的后续修复顺序
-
-1. **验证 `Font:get_text_width()`** — 运行时检查 `nvgTextBounds` 返回值, 确认文本布局是否正确
-2. **运行时集成测试** — 实际运行游戏, 确认所有修复项在游戏流程中正常工作
-3. **Canvas FBO 升级** (可选) — 如需更精确的像素级合成, 使用 `nvgluCreateFramebuffer()` 替代 Record+Replay
-4. **其他低优先级修复** — 手柄支持、成就系统等按需实现
-
----
-
-## 附录 A: 文件清单对比
-
-### 仅在原版中存在的文件 (FanZeros 移除的)
+## 4. 移植架构图
 
 ```
-.ctrlp                    — 编辑器配置
-LICENSE                   — MIT 许可证
-README.md                 — 项目说明
-conf.lua                  — LÖVE 配置文件
-build.sh / run.sh         — 构建/运行脚本
-builds/                   — 构建输出目录
-devlog.md                 — 开发日志
-todo                      — 待办事项
-assets/fonts/fonts_go_here.txt    — 占位文件
-assets/maps/maps_go_here.txt      — 占位文件
-assets/media/             — Steam 商店素材 (截图、胶囊图等, ~40 文件)
-assets/shaders/           — GLSL 着色器 (5 个 .frag + 1 个 .vert)
-engine/external/          — 外部库 (binser, clipper, mlib, ripple)
-engine/map/               — 地图系统 (solid, tilemap)
-engine/datastructures/graph.lua   — 图数据结构
-engine/datastructures/grid.lua    — 网格数据结构
-engine/love/              — LÖVE 框架二进制 + Steam SDK
-engine/gamecontrollerdb.txt       — 手柄映射数据库
-```
+┌─────────────────────────────────────────┐
+│          SNKRX 游戏逻辑层                │
+│  arena / buy_screen / enemies / player  │
+│  objects / shared / mainmenu / media    │
+│         (8 个文件，100% 未修改)           │
+├─────────────────────────────────────────┤
+│          SNKRX 引擎层                    │
+│  engine/game/* (17), graphics/* (6)      │
+│  math/* (3), datastructures/* (6)        │
+│         (32 个文件，30 个未修改)           │
+├─────────────────────────────────────────┤
+│     LOVE2D 兼容层 (engine/init.lua)      │  ← Fork 核心改动
+│  ~200 行 love.* API 垫片 + 延迟绘制系统   │
+├─────────────────────────────────────────┤
+│          UrhoX 引擎                      │
+│  NanoVG 矢量绘制 │ Box2D 物理 │ Lua 5.4  │
+└─────────────────────────────────────────┘
 
-### 仅在 FanZeros 中存在的文件 (新增的)
+        原版 LOVE2D 架构 (对比):
 
-```
-MISSING_API_REPORT.md                    — API 差距分析
-docs/characters-and-classes.md           — 游戏设计文档
-scripts/.luarc.json                      — Lua LSP 配置
-scripts/main.lua                         — UrhoX 入口
-scripts/game/data.lua                    — 从 main.lua 提取的数据
-scripts/main_snkrx_simplified.lua.bak    — 早期简化版入口备份
-scripts_snkrx_backup/                    — 早期简化版游戏代码备份 (7 文件)
-scripts/engine/game/anchor.lua           — 屏幕锚点
-scripts/engine/game/collision.lua        — 纯数学碰撞检测
-scripts/engine/game/container.lua        — 轻量对象容器
-scripts/engine/game/draft.lua            — 带权重随机抽取
-scripts/engine/game/layer.lua            — 独立 Layer 类
-scripts/engine/game/music.lua            — 音乐播放器
-scripts/engine/game/observer.lua         — 发布-订阅事件
-scripts/engine/game/shaders.lua          — Shader 加载 stub
-scripts/engine/game/shims.lua            — LÖVE/Steam 兼容 shim
-scripts/engine/game/sound.lua            — 音效播放器
-scripts/engine/game/stats.lua            — 属性容器
-scripts/engine/game/stepper.lua          — 往复迭代器
-scripts/engine/game/system.lua           — 系统工具
-scripts/engine/game/timer.lua            — 简单计时器
-assets/**/*.meta                         — 资源 UUID 元数据 (~200 个)
+┌─────────────────────────────────────────┐
+│          SNKRX 游戏逻辑层                │
+├─────────────────────────────────────────┤
+│          SNKRX 引擎层                    │
+├─────────────────────────────────────────┤
+│          LOVE2D 引擎                     │
+│  OpenGL │ Box2D │ LuaJIT │ SDL          │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-*报告生成日期: 2026-05-01*
-*最后更新: 2026-05-01 (反映 P0/P1 验证和修复结果)*
-*对比版本: a327ex/SNKRX (main branch) vs FanZeros/SNKRX (main branch)*
+## 5. 原版特性未保留的原因
+
+### 5.1 功能缺失总表
+
+| 优先级 | 特性 | 影响程度 | 状态 | 根因 |
+|:-----:|------|:------:|:----:|------|
+| 1 | Canvas 渲染到纹理 | **高** | 缺失 | NanoVG 无 FBO |
+| 2 | 存档系统 | **高** | 注释掉 | 文件 API 未实现 |
+| 3 | 音乐/背景音 | **高** | 注释掉 | 音频适配未完成 |
+| 4 | Steam 集成 | 中 | 注释掉 | Web 平台不适用 |
+| 5 | 自定义 Shader | 中 | stub | NanoVG 不支持 |
+| 6 | 网格寻路/可视化 | 低 | stub | 游戏未使用 + 依赖 Canvas |
+| 7 | 手柄输入 | 低 | 空数组 | 未实现映射 |
+| 8 | Stencil 蒙版 | 低 | 简化 | NanoVG 仅支持 scissor |
+| 9 | system.open_url | 低 | no-op | Web 沙箱限制 |
+| 10 | 外部调试工具 | 无 | 删除 | LuaJIT 专属 |
+
+### 5.2 详细分析
+
+#### [高影响] Canvas — 无真正的渲染到纹理
+
+**原版**: LOVE2D 的 `Canvas` 是 GPU 帧缓冲对象 (FBO)，可以：
+- 渲染整个场景到离屏纹理
+- 对纹理应用 shader 后处理 (bloom, 模糊)
+- 多个 Canvas 叠加合成
+- 像素级精确的离屏渲染
+
+**Fork**: NanoVG 没有 FBO 概念，`love.graphics.newCanvas()` 返回的是一个轻量对象，仅记录宽/高属性。`love.graphics.setCanvas()` 只是设置一个标记位。原版中所有依赖 Canvas 的功能（后处理、离屏混合）**实际不会执行**。
+
+**影响**: SNKRX 使用 `main_canvas` 和 `game_canvas` 做 shader 后处理（阴影、闪光等视觉效果），这些效果在 Fork 中**不可见**。但核心游戏玩法不受影响。
+
+#### [高影响] 存档系统 — 未实现
+
+**原版**: 使用 `love.filesystem.read/write` + `binser` (二进制序列化) 实现本地存档
+- 保存: 解锁职业、被动技能、最佳分数、循环轮数、主歌曲进度
+
+**Fork**: `love.filesystem.read()` 返回 `nil`，`love.filesystem.write()` 返回 `true` 但不操作。游戏每次启动都从默认状态开始（所有职业锁定、new_game_plus = -1）。
+
+**根因**: UrhoX 有 `File` API 可以实现，但 Fork 尚未接入。
+
+#### [高影响] 音乐/音效系统 — 部分工作
+
+**原版**: LOVE2D `Source` 支持流式播放、循环、克隆、多实例并发
+
+**Fork**: `love.audio.newSource()` 返回存根对象，`play()/stop()` 只修改内部标记，**不产生声音**。`main.lua` 中的背景音乐代码被注释掉，音效 `sfx` 表的 `Sound()` 构造函数虽然存在，但底层实现状态不明。
+
+#### [中影响] Steam 集成 — 平台不适用
+
+**原版**: 通过 `luasteam` 库连接 Steam API（成就、好友状态、存档云同步）
+
+**Fork**: 在 Web/移动平台上运行，Steam API 不可用。相关代码全部注释掉。合理的移植决策。
+
+#### [中影响] 自定义 Shader — 引擎限制
+
+**原版**: `love.graphics.newShader()` 支持 GLSL fragment shader，用于：
+- `shadow.frag`: 阴影渲染
+- 其他后处理效果（通过 Canvas pipeline）
+
+**Fork**: `love.graphics.newShader()` 返回空对象，`love.graphics.setShader()` 无操作。NanoVG 使用自己的渲染管线，不暴露 GL shader 接口。
+
+#### [低影响] Grid 寻路 — 游戏未使用
+
+**原版**: 1,981 行的完整网格系统（A*、流场、可视化调试），但 SNKRX 的 AI 使用 steering behavior，**不调用 Grid 寻路**。
+
+**Fork**: 保留 46 行最小构造函数防止报错。合理的精简。
+
+---
+
+## 6. 移植策略评价
+
+### 优点
+
+1. **侵入性极低**: 30/38 个文件完全不修改，游戏逻辑零改动
+2. **架构清晰**: 兼容层集中在 `engine/init.lua` 一个文件
+3. **可维护**: 原版更新时，可直接覆盖 30 个未修改文件
+
+### 不足
+
+1. **存档未实现**: 游戏无法保存进度，每次启动重新开始
+2. **音频未实现**: 无背景音乐和音效
+3. **Canvas/Shader 缺失**: 视觉效果降级（无阴影、无后处理）
+4. **延迟绘制的开销**: 每帧创建闭包并存入队列，有 GC 压力
+
+### 建议的后续优先级
+
+1. **P0**: 接入 UrhoX File API 实现存档读写
+2. **P0**: 接入 UrhoX audio 实现音效播放
+3. **P1**: 使用 NanoVG 渐变/模糊近似原版 shader 效果
+4. **P2**: 优化延迟绘制队列（对象池减少 GC）
+
+---
+
+## 7. 完整文件清单
+
+<details>
+<summary>点击展开全部文件对比表 (38 个文件)</summary>
+
+| # | Fork 路径 | 原版路径 | 行数 | 状态 |
+|:-:|----------|---------|:----:|:----:|
+| 1 | `main.lua` | `main.lua` | 1,309 | 修改 |
+| 2 | `game/arena.lua` | `arena.lua` | 1,643 | 一致 |
+| 3 | `game/buy_screen.lua` | `buy_screen.lua` | 547 | 一致 |
+| 4 | `game/enemies.lua` | `enemies.lua` | 773 | 一致 |
+| 5 | `game/mainmenu.lua` | `mainmenu.lua` | 52 | 一致 |
+| 6 | `game/media.lua` | `media.lua` | 237 | 一致 |
+| 7 | `game/objects.lua` | `objects.lua` | 2,296 | 一致 |
+| 8 | `game/player.lua` | `player.lua` | 2,181 | 一致 |
+| 9 | `game/shared.lua` | `shared.lua` | 329 | 一致 |
+| 10 | `engine/init.lua` | `engine/init.lua` | 3,625 | 修改 |
+| 11 | `engine/datastructures/grid.lua` | `engine/datastructures/grid.lua` | 46 | 修改 |
+| 12 | `engine/datastructures/hashgrid.lua` | 同路径 | 134 | 一致 |
+| 13 | `engine/datastructures/heap.lua` | 同路径 | 28 | 一致 |
+| 14 | `engine/datastructures/linked_list.lua` | 同路径 | 93 | 一致 |
+| 15 | `engine/datastructures/matrix.lua` | 同路径 | 57 | 一致 |
+| 16 | `engine/datastructures/spatial_hash.lua` | 同路径 | 67 | 一致 |
+| 17 | `engine/datastructures/thread_pool.lua` | 同路径 | 13 | 一致 |
+| 18 | `engine/game/animation.lua` | 同路径 | 1,055 | 一致 |
+| 19 | `engine/game/camera.lua` | 同路径 | 221 | 一致 |
+| 20 | `engine/game/color.lua` | 同路径 | 140 | 一致 |
+| 21 | `engine/game/game_object.lua` | 同路径 | 1,032 | 一致 |
+| 22 | `engine/game/group.lua` | 同路径 | 26 | 一致 |
+| 23 | `engine/game/hitfx.lua` | 同路径 | 1,224 | 一致 |
+| 24 | `engine/game/input.lua` | 同路径 | 141 | 一致 |
+| 25 | `engine/game/music_player.lua` | 同路径 | 289 | 一致 |
+| 26 | `engine/game/observer.lua` | 同路径 | 204 | 一致 |
+| 27 | `engine/game/physics_world.lua` | 同路径 | 13 | 一致 |
+| 28 | `engine/game/slow.lua` | 同路径 | 115 | 一致 |
+| 29 | `engine/game/sound.lua` | 同路径 | 52 | 一致 |
+| 30 | `engine/game/spring.lua` | 同路径 | 100 | 一致 |
+| 31 | `engine/game/stats.lua` | 同路径 | 77 | 一致 |
+| 32 | `engine/game/system.lua` | 同路径 | 282 | 一致 |
+| 33 | `engine/game/text.lua` | 同路径 | 297 | 一致 |
+| 34 | `engine/game/timer.lua` | 同路径 | 286 | 一致 |
+| 35 | `engine/graphics/gradient_image.lua` | 同路径 | 258 | 一致 |
+| 36 | `engine/graphics/image.lua` | 同路径 | 14 | 一致 |
+| 37 | `engine/graphics/layer.lua` | 同路径 | 100 | 一致 |
+| 38 | `engine/graphics/post_shader.lua` | 同路径 | 95 | 一致 |
+| 39 | `engine/graphics/text.lua` | 同路径 | 1,012 | 一致 |
+| 40 | `engine/graphics/texture.lua` | 同路径 | 7 | 一致 |
+| 41 | `engine/math/math.lua` | 同路径 | 58 | 一致 |
+| 42 | `engine/math/steering.lua` | 同路径 | 56 | 一致 |
+| 43 | `engine/math/vector2.lua` | 同路径 | 59 | 一致 |
+| - | *(已删除)* `conf.lua` | `conf.lua` | 19 | 删除 |
+| - | *(已删除)* | `engine/external/utf8.lua` | 131 | 删除 |
+| - | *(已删除)* | `engine/external/ffi_reflect.lua` | 55 | 删除 |
+| - | *(已删除)* | `engine/external/lovebird.lua` | 127 | 删除 |
+| - | *(已删除)* | `engine/external/profile.lua` | 124 | 删除 |
+
+</details>
+
+---
+
+*生成日期: 2025-05-05*
+*对比基准: a327ex/SNKRX master vs FanZeros/SNKRX master (commit 8b9cfb7)*
